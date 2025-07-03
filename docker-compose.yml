@@ -1,0 +1,154 @@
+version: '3.8'
+
+services:
+  # Database Services
+  users_db:
+    image: postgres:15-alpine
+    container_name: users_db
+    environment:
+      POSTGRES_DB: ${USERS_DB_NAME}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - users_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  wallets_db:
+    image: postgres:15-alpine
+    container_name: wallets_db
+    environment:
+      POSTGRES_DB: ${WALLETS_DB_NAME}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - wallets_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  transactions_db:
+    image: postgres:15-alpine
+    container_name: transactions_db
+    environment:
+      POSTGRES_DB: ${TRANSACTIONS_DB_NAME}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - transactions_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Application Services
+  user-service:
+    build:
+      context: ./userService
+      dockerfile: Dockerfile
+    container_name: user-service
+    ports:
+      - ${USER_SERVICE_PORT}:${USER_SERVICE_PORT}
+    expose:
+      - ${USER_SERVICE_PORT}
+    environment:
+      SPRING_DATASOURCE_URL: ${USER_DB_URL}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      USER_SERVICE_PORT: ${USER_SERVICE_PORT}
+      WALLET_SERVICE_URL: ${WALLET_SERVICE_URL}
+    depends_on:
+      users_db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  wallet-service:
+    build:
+      context: ./walletService
+      dockerfile: Dockerfile
+    container_name: wallet-service
+    ports:
+      - ${WALLET_SERVICE_PORT}:${WALLET_SERVICE_PORT}
+    expose:
+      - ${WALLET_SERVICE_PORT}
+    environment:
+      SPRING_DATASOURCE_URL: ${WALLET_DB_URL}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SERVER_PORT: ${WALLET_SERVICE_PORT}
+    depends_on:
+      wallets_db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  transaction-service:
+    build:
+      context: ./transactionService
+      dockerfile: Dockerfile
+    container_name: transaction-service
+    ports:
+      - ${TRANSACTION_SERVICE_PORT}:${TRANSACTION_SERVICE_PORT}
+    expose:
+      - ${TRANSACTION_SERVICE_PORT}
+    environment:
+      SPRING_DATASOURCE_URL: ${TRANSACTION_DB_URL}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      TRANSACTION_SERVICE_PORT: ${TRANSACTION_SERVICE_PORT}
+      USER_SERVICE_URL: ${USER_SERVICE_URL}
+      WALLET_SERVICE_URL: ${WALLET_SERVICE_URL}
+    depends_on:
+      transactions_db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  api-gateway:
+    build:
+      context: ./apiGateway
+      dockerfile: Dockerfile
+    container_name: api-gateway
+    ports:
+      - "8090:8080"
+    environment:
+      USER_SERVICE_URL: ${USER_SERVICE_URL}
+      WALLET_SERVICE_URL: ${WALLET_SERVICE_URL}
+      TRANSACTION_SERVICE_URL: ${TRANSACTION_SERVICE_URL}
+    depends_on:
+      - user-service
+      - wallet-service
+      - transaction-service
+    restart: unless-stopped
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin
+    ports:
+      - "5050:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - users_db
+      - wallets_db
+      - transactions_db
+    restart: unless-stopped
+
+# Volumes for database persistence
+volumes:
+  users_data:
+  wallets_data:
+  transactions_data:
+  pgadmin_data:
+
+networks:
+  default:
+    name: wallet-network
