@@ -1,9 +1,10 @@
-version: '3.8'
 
 services:
   # Database Services
   users_db:
     image: postgres:15-alpine
+    ports:
+      - "5433:5432"
     container_name: users_db
     environment:
       POSTGRES_DB: ${USERS_DB_NAME}
@@ -19,6 +20,8 @@ services:
 
   wallets_db:
     image: postgres:15-alpine
+    ports:
+      - "5434:5432"
     container_name: wallets_db
     environment:
       POSTGRES_DB: ${WALLETS_DB_NAME}
@@ -34,6 +37,8 @@ services:
 
   transactions_db:
     image: postgres:15-alpine
+    ports:
+      - "5435:5432"
     container_name: transactions_db
     environment:
       POSTGRES_DB: ${TRANSACTIONS_DB_NAME}
