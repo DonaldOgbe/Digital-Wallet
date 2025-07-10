@@ -11,15 +11,40 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(UserAlreadyExistsException.class)
     public ResponseEntity<?> handleUserExists(UserAlreadyExistsException e) {
-        ApiResponse<Void> response = ApiResponse.<Void>builder()
-                .status(HttpStatus.BAD_REQUEST)
+        return handleResponse(HttpStatus.BAD_REQUEST,
+                "Registration Failed",
+                e.getMessage(),
+                null
+        );
+    }
+
+    @ExceptionHandler(InvalidLoginCredentialsException.class)
+    public ResponseEntity<?> handleInvalidLoginCredentials(InvalidLoginCredentialsException e) {
+        return handleResponse(HttpStatus.BAD_REQUEST,
+                "Login Failed",
+                e.getMessage(),
+                null
+                );
+    }
+
+    @ExceptionHandler(TokenValidationException.class)
+    public ResponseEntity<?> handleTokenValidationError(TokenValidationException e) {
+        return handleResponse(HttpStatus.UNAUTHORIZED,
+                "Token Validation Error",
+                e.getMessage(),
+                null);
+    }
+
+    private <T> ResponseEntity<ApiResponse<T>>  handleResponse(HttpStatus status, String message, String error, T data) {
+        ApiResponse<T> response = ApiResponse.<T>builder()
+                .status(status)
                 .success(false)
-                .message("Registration Failed")
-                .error(e.getMessage())
+                .message(message)
+                .error(error)
+                .data(data)
                 .build();
 
-        return ResponseEntity
-                .status(response.getStatus())
+        return ResponseEntity.status(response.getStatus())
                 .body(response);
     }
 }

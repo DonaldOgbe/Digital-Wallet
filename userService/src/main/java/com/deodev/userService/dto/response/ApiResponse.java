@@ -21,4 +21,20 @@ public class ApiResponse<T> {
     private T data;
 
     private String error;
+
+
+    public static <T> ApiResponse<T> success(String message, T data) {
+        return ApiResponse.<T>builder()
+                .message(message)
+                .data(data)
+                .build();
+    }
+
+    public static <T> ApiResponse<T> error(String message, String error, HttpStatus status) {
+        return ApiResponse.<T>builder()
+                .message(message)
+                .error(error)
+                .status(status)
+                .build();
+    }
 }

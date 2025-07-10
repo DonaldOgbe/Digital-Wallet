@@ -42,7 +42,7 @@ public class User {
     private LocalDateTime createdAt;
 
     @Enumerated(EnumType.STRING)
-    private UserStatus status = UserStatus.ACTIVE;
+    private UserStatus status;
 
     @PrePersist
     protected void onCreate() {
