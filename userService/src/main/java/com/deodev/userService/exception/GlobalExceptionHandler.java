@@ -35,6 +35,14 @@ public class GlobalExceptionHandler {
                 null);
     }
 
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<?> handleVagueExceptions(Exception e) {
+        return handleResponse(HttpStatus.BAD_REQUEST,
+                "Error Failed",
+                e.getMessage(),
+                null);
+    }
+
     private <T> ResponseEntity<ApiResponse<T>>  handleResponse(HttpStatus status, String message, String error, T data) {
         ApiResponse<T> response = ApiResponse.<T>builder()
                 .status(status)
