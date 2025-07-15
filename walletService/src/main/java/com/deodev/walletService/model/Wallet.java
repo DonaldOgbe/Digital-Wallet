@@ -19,19 +19,16 @@ public class Wallet {
 
     @Id
     @GeneratedValue
-    @Column(columnDefinition = "uuid", nullable = false, updatable = false)
+    @Column(nullable = false, updatable = false)
     private UUID id;
 
-    @Column(name = "user_id", columnDefinition = "uuid", nullable = false, updatable = false)
+    @Column(name = "user_id", nullable = false, updatable = false)
     private UUID userId;
-
-    @Column(name = "balance", nullable = false)
-    private Long balance = 0L;
 
     @Column(name = "created_at", updatable = false, nullable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "updated_at", updatable = true, nullable = false)
+    @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
     @Enumerated(EnumType.STRING)
