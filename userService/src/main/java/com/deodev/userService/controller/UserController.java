@@ -17,7 +17,7 @@ public class UserController {
     private final UserService userService;
 
     @GetMapping("/search")
-    private ResponseEntity<?> searchForUserFromUsername(@RequestParam String username) {
+    public ResponseEntity<?> searchForUserFromUsername(@RequestParam String username) {
 
         ApiResponse<?> response = userService.findUserDetails(username);
         return ResponseEntity

@@ -1,16 +1,19 @@
 package com.deodev.walletService.util;
 
 
+import com.deodev.walletService.exception.TokenValidationException;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.SignatureException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Component;
+
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.Date;
@@ -31,7 +34,7 @@ public class JwtUtil {
     }
 
     public String generateServiceToken(Map<String, Object> extraClaims) {
-        if (cacheToken !=  null && isValidToken(cacheToken)) {
+        if (cacheToken != null && isValidToken(cacheToken)) {
             return cacheToken;
         }
 
@@ -62,13 +65,13 @@ public class JwtUtil {
             final String username = getUsernameFromToken(token);
             final List<String> authorities = getAuthoritiesFromToken(token);
 
-            List<GrantedAuthority> grantedAuthorities =  authorities.stream()
+            List<GrantedAuthority> grantedAuthorities = authorities.stream()
                     .map(SimpleGrantedAuthority::new)
                     .collect(Collectors.toUnmodifiableList());
 
             return new UsernamePasswordAuthenticationToken(username, null, grantedAuthorities);
-        } catch (Exception e) {
-            throw new RuntimeException(e.getMessage());
+        } catch (SignatureException e) {
+            throw new TokenValidationException("Invalid Token");
         }
     }
 
@@ -80,8 +83,8 @@ public class JwtUtil {
                     .build()
                     .parseClaimsJws(token)
                     .getBody();
-        } catch (Exception e) {
-            throw  new RuntimeException(e.getMessage());
+        } catch (SignatureException e) {
+            throw new TokenValidationException("Invalid Token");
         }
     }
 
@@ -94,14 +97,19 @@ public class JwtUtil {
         try {
             getAllClaimsFromToken(token);
             return true;
-        } catch (Exception e) {
+        } catch (SignatureException e) {
             return false;
         }
     }
 
 
+    private Key getSigningKey() {
+        return Keys.hmacShaKeyFor(secretUtil.getSecret().getBytes(StandardCharsets.UTF_8));
+    }
 
-    private Key getSigningKey() { return Keys.hmacShaKeyFor(secretUtil.getSecret().getBytes(StandardCharsets.UTF_8)); }
+    public void clearCachedToken() {
+        cacheToken = null;
+    }
 
 
 }

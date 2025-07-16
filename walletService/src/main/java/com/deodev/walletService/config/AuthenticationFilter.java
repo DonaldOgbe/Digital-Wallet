@@ -1,6 +1,10 @@
 package com.deodev.walletService.config;
 
+import com.deodev.walletService.exception.TokenValidationException;
 import com.deodev.walletService.util.JwtUtil;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.MalformedJwtException;
+import io.jsonwebtoken.security.SignatureException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -34,13 +38,19 @@ public class AuthenticationFilter extends OncePerRequestFilter {
         }
 
         String jwt = authHeader.substring(7);
-        String username = jwtUtil.getUsernameFromToken(jwt);
 
-        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            if (jwtUtil.isValidToken(jwt)) {
-                SecurityContextHolder.getContext().setAuthentication(jwtUtil.getAuthenticationFromToken(jwt));
+        try {
+            String username = jwtUtil.getUsernameFromToken(jwt);
+
+            if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                if (jwtUtil.isValidToken(jwt)) {
+                    SecurityContextHolder.getContext().setAuthentication(jwtUtil.getAuthenticationFromToken(jwt));
+                }
             }
+        } catch (Exception e) {
+            throw new TokenValidationException("Invalid or expired JWT");
         }
+
 
         filterChain.doFilter(request, response);
     }

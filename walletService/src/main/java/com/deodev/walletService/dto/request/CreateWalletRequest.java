@@ -15,6 +15,5 @@ import java.util.UUID;
 public class CreateWalletRequest {
 
     @NotNull(message = "user ID cannot be null")
-    @NotBlank(message = "user ID cannot be blank")
     private UUID userId;
 }
