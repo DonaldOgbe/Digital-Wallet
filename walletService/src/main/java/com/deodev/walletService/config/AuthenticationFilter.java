@@ -2,9 +2,6 @@ package com.deodev.walletService.config;
 
 import com.deodev.walletService.exception.TokenValidationException;
 import com.deodev.walletService.util.JwtUtil;
-import io.jsonwebtoken.ExpiredJwtException;
-import io.jsonwebtoken.MalformedJwtException;
-import io.jsonwebtoken.security.SignatureException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

@@ -21,15 +21,15 @@ public class WalletService {
     public ApiResponse<?> createWallet(CreateWalletRequest request) {
 
         Wallet wallet = new ObjectMapper().convertValue(request, Wallet.class);
-        walletRepository.save(wallet);
+        Wallet savedWallet = walletRepository.save(wallet);
 
         return ApiResponse.<CreateWalletResponse>builder()
                 .message("Wallet Created successfully")
                 .status(HttpStatus.CREATED)
                 .data(CreateWalletResponse.builder()
                         .userId(request.getUserId())
+                        .walletId(savedWallet.getId())
                         .build())
                 .build();
     }
-
 }
