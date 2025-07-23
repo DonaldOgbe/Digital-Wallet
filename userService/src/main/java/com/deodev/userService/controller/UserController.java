@@ -3,6 +3,7 @@ package com.deodev.userService.controller;
 import com.deodev.userService.dto.response.ApiResponse;
 import com.deodev.userService.service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -21,7 +22,7 @@ public class UserController {
 
         ApiResponse<?> response = userService.findUserDetails(username);
         return ResponseEntity
-                .status(response.getStatus())
+                .status(HttpStatus.OK)
                 .body(response);
     }
 }

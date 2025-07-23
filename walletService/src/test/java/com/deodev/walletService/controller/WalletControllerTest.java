@@ -1,6 +1,6 @@
 package com.deodev.walletService.controller;
 
-import com.deodev.walletService.dto.ApiResponse;
+import com.deodev.walletService.dto.response.ApiResponse;
 import com.deodev.walletService.dto.request.CreateWalletRequest;
 import com.deodev.walletService.dto.response.CreateWalletResponse;
 import com.deodev.walletService.util.JwtUtil;
@@ -10,7 +10,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 import org.springframework.test.context.ActiveProfiles;
 
@@ -45,7 +44,7 @@ class WalletControllerTest {
         CreateWalletRequest request = new CreateWalletRequest(userId);
 
         Map<String, Object> claims = new HashMap<>();
-        claims.put("authorities", List.of("SERVICE"));
+        claims.put("authorities", List.of("ROLE_USER"));
 
         jwtUtil.clearCachedToken();
         headers.set("Authorization", "Bearer ".concat(jwtUtil.generateServiceToken(claims)));
@@ -53,19 +52,16 @@ class WalletControllerTest {
         HttpEntity<CreateWalletRequest> requestHttpEntity = new HttpEntity<>(request, headers);
 
         // when
-        ResponseEntity<ApiResponse<CreateWalletResponse>> response = restTemplate.exchange(
-                "/api/v1/wallets/create",
+        ResponseEntity<CreateWalletResponse> response = restTemplate.exchange(
+                "/api/v1/wallets",
                 HttpMethod.POST,
                 requestHttpEntity,
-                new ParameterizedTypeReference<ApiResponse<CreateWalletResponse>>() {
-                }
+                CreateWalletResponse.class
         );
 
-        CreateWalletResponse data = (CreateWalletResponse) Objects.requireNonNull(response.getBody()).getData();
-
         // then
-        assertEquals(HttpStatus.CREATED, response.getStatusCode());
-        assertEquals(userId, data.getUserId());
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(userId, response.getBody().userId());
     }
 
     @Test
@@ -76,24 +72,23 @@ class WalletControllerTest {
         CreateWalletRequest requestBody = new CreateWalletRequest(null);
 
         Map<String, Object> claims = new HashMap<>();
-        claims.put("authorities", List.of("SERVICE"));
+        claims.put("authorities", List.of("ROLE_USER"));
 
         headers.set("Authorization", "Bearer ".concat(jwtUtil.generateServiceToken(claims)));
 
         HttpEntity<CreateWalletRequest> requestHttpEntity = new HttpEntity<>(requestBody, headers);
 
         // when
-        ResponseEntity<ApiResponse<?>> response = restTemplate.exchange(
-                "/api/v1/wallets/create",
+        ResponseEntity<ApiResponse> response = restTemplate.exchange(
+                "/api/v1/wallets",
                 HttpMethod.POST,
                 requestHttpEntity,
-                new ParameterizedTypeReference<ApiResponse<?>>() {
-                }
+                ApiResponse.class
         );
 
         // then
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertEquals("Validation Error", response.getBody().getError());
+        assertEquals("Validation Error", response.getBody().getNote());
     }
 
     @Test
@@ -105,19 +100,18 @@ class WalletControllerTest {
         CreateWalletRequest requestBody = new CreateWalletRequest(userId);
 
         Map<String, Object> claims = new HashMap<>();
-        claims.put("authorities", List.of("SERVICE"));
+        claims.put("authorities", List.of("ROLE_USER"));
 
         headers.set("Authorization", "Bearer ".concat("fake_token"));
 
         HttpEntity<CreateWalletRequest> requestHttpEntity = new HttpEntity<>(requestBody, headers);
 
         // when
-        ResponseEntity<ApiResponse<?>> response = restTemplate.exchange(
-                "/api/v1/wallets/create",
+        ResponseEntity<ApiResponse> response = restTemplate.exchange(
+                "/api/v1/wallets",
                 HttpMethod.POST,
                 requestHttpEntity,
-                new ParameterizedTypeReference<ApiResponse<?>>() {
-                }
+                ApiResponse.class
         );
 
         // then
@@ -134,23 +128,22 @@ class WalletControllerTest {
         CreateWalletRequest requestBody = new CreateWalletRequest(userId);
 
         Map<String, Object> claims = new HashMap<>();
-        claims.put("authorities", List.of("NOT-SERVICE"));
+        claims.put("authorities", List.of("NOT-ROLE_USER"));
 
         headers.set("Authorization", "Bearer ".concat(jwtUtil.generateServiceToken(claims)));
 
         HttpEntity<CreateWalletRequest> requestHttpEntity = new HttpEntity<>(requestBody, headers);
 
         // when
-        ResponseEntity<ApiResponse<?>> response = restTemplate.exchange(
-                "/api/v1/wallets/create",
+        ResponseEntity<ApiResponse> response = restTemplate.exchange(
+                "/api/v1/wallets",
                 HttpMethod.POST,
                 requestHttpEntity,
-                new ParameterizedTypeReference<ApiResponse<?>>() {
-                }
+                ApiResponse.class
         );
 
         // then
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-        assertEquals("Authorization Error", response.getBody().getError());
+        assertEquals("Authorization Error", response.getBody().getNote());
     }
 }

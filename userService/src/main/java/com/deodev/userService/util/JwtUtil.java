@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -26,6 +27,12 @@ public class JwtUtil {
     private final JwtSecretUtil secretUtil;
 
     public String generateToken(Map<String, Object> extraClaims, String subject) {
+        return createToken(extraClaims, subject);
+    }
+
+    public String generateToken(String subject) {
+        Map<String, Object> extraClaims = new HashMap<>();
+        extraClaims.put("authorities", List.of("ROLE_USER"));
         return createToken(extraClaims, subject);
     }
 

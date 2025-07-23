@@ -1,15 +1,15 @@
 package com.deodev.userService.dto.response;
 
-import lombok.*;
+import lombok.Builder;
 
 import java.util.UUID;
 
-@Getter
-@Setter
-@AllArgsConstructor
-@NoArgsConstructor
+
 @Builder
-public class CreateWalletResponse {
-    private UUID walletId;
-    private UUID userId;
+public record CreateWalletResponse(
+        boolean success,
+        String note,
+        UUID userId,
+        UUID walletId
+) {
 }

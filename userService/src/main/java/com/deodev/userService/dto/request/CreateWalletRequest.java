@@ -5,11 +5,7 @@ import lombok.*;
 import java.util.UUID;
 
 @Builder
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-public class CreateWalletRequest {
-
-    private UUID userId;
+public record CreateWalletRequest(
+        UUID userId
+) {
 }

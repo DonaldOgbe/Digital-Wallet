@@ -1,7 +1,6 @@
 package com.deodev.userService.dto.response;
 
 import lombok.*;
-import org.springframework.http.HttpStatus;
 
 @Builder
 @Getter
@@ -15,13 +14,9 @@ public class ApiResponse<T> {
 
     private String message;
 
-    @Builder.Default
-    private HttpStatus status = HttpStatus.OK;
+    private String note;
 
     private T data;
-
-    private String error;
-
 
     public static <T> ApiResponse<T> success(String message, T data) {
         return ApiResponse.<T>builder()
@@ -30,11 +25,11 @@ public class ApiResponse<T> {
                 .build();
     }
 
-    public static <T> ApiResponse<T> error(String message, String error, HttpStatus status) {
+    public static <T> ApiResponse<T> error(String message, String note) {
         return ApiResponse.<T>builder()
+                .success(false)
                 .message(message)
-                .error(error)
-                .status(status)
+                .note(note)
                 .build();
     }
 }

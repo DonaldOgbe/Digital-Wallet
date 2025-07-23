@@ -26,5 +26,6 @@ springdoc:
 server:
   port: ${USER_SERVICE_PORT:8091}
 
-url:
-  wallet-service: ${WALLET_SERVICE_URL:http://localhost:8092}
+wallet:
+  service:
+    url: ${WALLET_SERVICE_URL:http://localhost:8092}

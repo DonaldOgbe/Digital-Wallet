@@ -1,10 +1,10 @@
 package com.deodev.walletService.exception;
-import com.deodev.walletService.dto.ApiResponse;
+import com.deodev.walletService.dto.response.ApiResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authorization.AuthorizationDeniedException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -32,16 +32,14 @@ public class GlobalExceptionHandler {
         return handleResponse(
                 errors,
                 "Validation Error",
-                null,
                 HttpStatus.BAD_REQUEST);
     }
 
-    @ExceptionHandler(AuthorizationDeniedException.class)
-    public ResponseEntity<?> handleAuthorizationDeniedExceptions(AuthorizationDeniedException e) {
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<?> handleAuthorizationDeniedExceptions(AccessDeniedException e) {
         return handleResponse(
                 "Access Denied",
                 "Authorization Error",
-                null,
                 HttpStatus.UNAUTHORIZED
         );
     }
@@ -52,7 +50,6 @@ public class GlobalExceptionHandler {
         return handleResponse(
                 e.getMessage(),
                 "Token Validation Error",
-                null,
                 HttpStatus.UNAUTHORIZED
         );
     }
@@ -65,26 +62,19 @@ public class GlobalExceptionHandler {
         return handleResponse(
                 "Operation Failed",
                 e.getMessage(),
-                null,
                 HttpStatus.BAD_REQUEST
                 );
     }
 
-    private <T> ResponseEntity<ApiResponse<T>> handleResponse(
+    private ResponseEntity<ApiResponse<Void>> handleResponse(
             String message,
-            String error,
-            T data,
-            HttpStatus status) {
+            String note,
+            HttpStatus httpStatus) {
 
-        ApiResponse<T> response = ApiResponse.<T>builder()
-                .message(message)
-                .error(error)
-                .status(status)
-                .data(data)
-                .build();
+        ApiResponse<Void> response = ApiResponse.error(message, note, null);
 
         return ResponseEntity
-                .status(response.getStatus())
+                .status(httpStatus)
                 .body(response);
     }
 }
