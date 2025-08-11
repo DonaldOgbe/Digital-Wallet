@@ -1,4 +1,4 @@
-package com.deodev.walletService.dto.response;
+package com.deodev.walletService.walletService.dto.response;
 
 import lombok.*;
 import java.util.UUID;

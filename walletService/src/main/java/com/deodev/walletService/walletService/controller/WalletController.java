@@ -1,8 +1,8 @@
-package com.deodev.walletService.controller;
+package com.deodev.walletService.walletService.controller;
 
-import com.deodev.walletService.dto.request.CreateWalletRequest;
-import com.deodev.walletService.dto.response.CreateWalletResponse;
-import com.deodev.walletService.service.WalletService;
+import com.deodev.walletService.walletService.dto.request.CreateWalletRequest;
+import com.deodev.walletService.walletService.dto.response.CreateWalletResponse;
+import com.deodev.walletService.walletService.service.WalletService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

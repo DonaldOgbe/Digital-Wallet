@@ -1,5 +1,5 @@
 package com.deodev.walletService.exception;
-import com.deodev.walletService.dto.response.ApiResponse;
+import com.deodev.walletService.dto.ApiResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;

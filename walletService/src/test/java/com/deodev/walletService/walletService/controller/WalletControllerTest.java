@@ -1,8 +1,8 @@
-package com.deodev.walletService.controller;
+package com.deodev.walletService.walletService.controller;
 
-import com.deodev.walletService.dto.response.ApiResponse;
-import com.deodev.walletService.dto.request.CreateWalletRequest;
-import com.deodev.walletService.dto.response.CreateWalletResponse;
+import com.deodev.walletService.dto.ApiResponse;
+import com.deodev.walletService.walletService.dto.request.CreateWalletRequest;
+import com.deodev.walletService.walletService.dto.response.CreateWalletResponse;
 import com.deodev.walletService.util.JwtUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

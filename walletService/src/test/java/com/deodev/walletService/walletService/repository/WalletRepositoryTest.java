@@ -1,6 +1,7 @@
-package com.deodev.walletService.repository;
+package com.deodev.walletService.walletService.repository;
 
-import com.deodev.walletService.model.Wallet;
+import com.deodev.walletService.walletService.model.Wallet;
+import com.deodev.walletService.walletService.repository.WalletRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;

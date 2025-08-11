@@ -1,6 +1,5 @@
 package com.deodev.walletService.util;
 
-
 import com.deodev.walletService.exception.TokenValidationException;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;

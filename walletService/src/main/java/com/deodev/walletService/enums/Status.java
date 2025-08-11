@@ -1,4 +1,4 @@
-package com.deodev.walletService.model.enums;
+package com.deodev.walletService.enums;
 
 public enum Status {
     ACTIVE,

@@ -1,6 +1,6 @@
-package com.deodev.walletService.model;
+package com.deodev.walletService.walletService.model;
 
-import com.deodev.walletService.model.enums.Status;
+import com.deodev.walletService.enums.Status;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;

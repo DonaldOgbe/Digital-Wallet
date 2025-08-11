@@ -1,4 +1,4 @@
-package com.deodev.walletService.dto.request;
+package com.deodev.walletService.walletService.dto.request;
 
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
