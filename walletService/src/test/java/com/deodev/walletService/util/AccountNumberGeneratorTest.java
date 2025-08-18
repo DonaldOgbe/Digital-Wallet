@@ -1,22 +1,31 @@
 package com.deodev.walletService.util;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-
-import java.lang.reflect.Field;
-
 import static org.junit.jupiter.api.Assertions.*;
 
 class AccountNumberGeneratorTest {
 
-    @Autowired
     private AccountNumberGenerator accountNumberGenerator;
+    private AccountNumberValidatorUtil validatorUtil;
 
-//    @Test
-//    public void generateRandomNineDigits() {
-//
-//        Field field =
-//        String result = accountNumberGenerator.
-//    }
+    @BeforeEach
+    void setUp() {
+        this.accountNumberGenerator = new AccountNumberGenerator();
+        this.validatorUtil = new AccountNumberValidatorUtil();
+    }
+
+
+    @Test
+    public void generateValidTenDigitAccountNumber() {
+        // given
+        String accountNumber =  accountNumberGenerator.generateAccountNumber();
+
+        // when
+        boolean result = validatorUtil.validateAccountNumber(accountNumber);
+
+        // then
+        assertTrue(result);
+    }
 
 }

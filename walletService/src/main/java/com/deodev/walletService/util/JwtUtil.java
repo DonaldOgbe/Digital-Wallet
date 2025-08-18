@@ -1,12 +1,11 @@
 package com.deodev.walletService.util;
 
 import com.deodev.walletService.exception.TokenValidationException;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.security.SignatureException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -21,6 +20,8 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class JwtUtil {
@@ -30,6 +31,10 @@ public class JwtUtil {
 
     public String generateToken(Map<String, Object> extraClaims, String subject) {
         return createToken(extraClaims, subject);
+    }
+
+    public String generateToken(String subject) {
+        return createToken(subject);
     }
 
     public String generateServiceToken(Map<String, Object> extraClaims) {
@@ -44,6 +49,15 @@ public class JwtUtil {
     private String createToken(Map<String, Object> extraClaims, String subject) {
         return Jwts.builder()
                 .setClaims(extraClaims)
+                .setSubject(subject)
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + secretUtil.getExpiration()))
+                .signWith(getSigningKey(), SignatureAlgorithm.HS512)
+                .compact();
+    }
+
+    private String createToken(String subject) {
+        return Jwts.builder()
                 .setSubject(subject)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + secretUtil.getExpiration()))
@@ -96,11 +110,21 @@ public class JwtUtil {
         try {
             getAllClaimsFromToken(token);
             return true;
-        } catch (SignatureException e) {
+        } catch (ExpiredJwtException ex) {
+            throw new TokenValidationException("Token Expired", ex);
+        } catch (SignatureException ex) {
+            throw new TokenValidationException("Invalid Signature", ex);
+        } catch (MalformedJwtException ex) {
+            log.error("Malformed JWT: {}", token);
+            return false;
+        } catch (UnsupportedJwtException ex) {
+            log.error("Unsupported JWT format: {}", token);
+            return false;
+        } catch (IllegalArgumentException ex) {
+            log.error("JWT token is null or empty");
             return false;
         }
     }
-
 
     private Key getSigningKey() {
         return Keys.hmacShaKeyFor(secretUtil.getSecret().getBytes(StandardCharsets.UTF_8));
@@ -109,6 +133,4 @@ public class JwtUtil {
     public void clearCachedToken() {
         cacheToken = null;
     }
-
-
 }

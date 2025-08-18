@@ -30,7 +30,7 @@ public class Account {
 
     @Size(min = 10, max = 10, message = "Account number must be exactly 10 digits")
     @Pattern(regexp = "\\d+", message = "Account number must contain only digits")
-    @Column(nullable = false, updatable = false)
+    @Column(nullable = false, updatable = false, unique = true)
     private String accountNumber;
 
     @Enumerated(EnumType.STRING)

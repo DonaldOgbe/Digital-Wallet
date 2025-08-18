@@ -16,4 +16,20 @@ public class AccountNumberGenerator {
 
         return stringBuilder.toString();
     }
+
+    private int calculateChecksum(String nineDigits) {
+        int sum = 0;
+        for (int i = 0; i < nineDigits.length(); i++) {
+            int digit = Character.getNumericValue(nineDigits.charAt(i));
+            sum += digit * (i + 1);
+        }
+        return sum % 10;
+    }
+
+    public String generateAccountNumber() {
+        String baseNumber = generateRandomBaseNumber();
+        int tenthDigit = calculateChecksum(baseNumber);
+
+        return baseNumber.concat(String.valueOf(tenthDigit));
+    }
 }

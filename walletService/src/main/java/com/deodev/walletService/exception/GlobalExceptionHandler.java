@@ -44,6 +44,7 @@ public class GlobalExceptionHandler {
         );
     }
 
+
     @ExceptionHandler(TokenValidationException.class)
     public ResponseEntity<?> handleTokenValidationExceptions(TokenValidationException e) {
 
@@ -51,6 +52,15 @@ public class GlobalExceptionHandler {
                 e.getMessage(),
                 "Token Validation Error",
                 HttpStatus.UNAUTHORIZED
+        );
+    }
+
+    @ExceptionHandler(PinMismatchException.class)
+    public ResponseEntity<?> handlePinMismatchException(PinMismatchException e) {
+        return handleResponse(
+                e.getMessage(),
+                "PIN Mismatch Error",
+                HttpStatus.BAD_REQUEST
         );
     }
 
