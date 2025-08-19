@@ -1,5 +1,7 @@
 package com.deodev.walletService.exception;
 import com.deodev.walletService.dto.ApiResponse;
+import com.deodev.walletService.dto.ErrorResponse;
+import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -8,6 +10,8 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -18,7 +22,7 @@ public class GlobalExceptionHandler {
     private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<?> handleValidationError(MethodArgumentNotValidException e) {
+    public ResponseEntity<?> handleValidationError(MethodArgumentNotValidException e, HttpServletRequest request) {
         String errors = e.getBindingResult()
                 .getFieldErrors()
                 .stream()
@@ -30,61 +34,78 @@ public class GlobalExceptionHandler {
 
         logger.error("Validation Error", e);
         return handleResponse(
-                errors,
+                LocalDateTime.now(),
+                HttpStatus.BAD_REQUEST,
                 "Validation Error",
-                HttpStatus.BAD_REQUEST);
+                errors,
+                request.getRequestURI()
+        );
     }
 
     @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<?> handleAuthorizationDeniedExceptions(AccessDeniedException e) {
+    public ResponseEntity<?> handleAuthorizationDeniedExceptions(AccessDeniedException e, HttpServletRequest request) {
         return handleResponse(
-                "Access Denied",
+                LocalDateTime.now(),
+                HttpStatus.UNAUTHORIZED,
                 "Authorization Error",
-                HttpStatus.UNAUTHORIZED
+                "Access Denied",
+                request.getRequestURI()
         );
     }
 
 
     @ExceptionHandler(TokenValidationException.class)
-    public ResponseEntity<?> handleTokenValidationExceptions(TokenValidationException e) {
+    public ResponseEntity<?> handleTokenValidationExceptions(TokenValidationException e, HttpServletRequest request) {
 
         return handleResponse(
-                e.getMessage(),
+                LocalDateTime.now(),
+                HttpStatus.UNAUTHORIZED,
                 "Token Validation Error",
-                HttpStatus.UNAUTHORIZED
+                e.getMessage(),
+                request.getRequestURI()
         );
     }
 
     @ExceptionHandler(PinMismatchException.class)
-    public ResponseEntity<?> handlePinMismatchException(PinMismatchException e) {
+    public ResponseEntity<?> handlePinMismatchException(PinMismatchException e, HttpServletRequest request) {
         return handleResponse(
-                e.getMessage(),
+                LocalDateTime.now(),
+                HttpStatus.BAD_REQUEST,
                 "PIN Mismatch Error",
-                HttpStatus.BAD_REQUEST
+                e.getMessage(),
+                request.getRequestURI()
         );
     }
 
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<?> handleExceptions(Exception e) {
+    public ResponseEntity<?> handleExceptions(Exception e, HttpServletRequest request) {
 
         logger.error("Global Exception", e);
         return handleResponse(
-                "Operation Failed",
+                LocalDateTime.now(),
+                HttpStatus.BAD_REQUEST,
+                "Global Error",
                 e.getMessage(),
-                HttpStatus.BAD_REQUEST
-                );
+                request.getRequestURI()
+        );
     }
 
-    private ResponseEntity<ApiResponse<Void>> handleResponse(
+    private ResponseEntity<ErrorResponse> handleResponse(
+            LocalDateTime timestamp,
+            HttpStatus status,
+            String error,
             String message,
-            String note,
-            HttpStatus httpStatus) {
-
-        ApiResponse<Void> response = ApiResponse.error(message, note, null);
-
+            String path
+    ) {
         return ResponseEntity
-                .status(httpStatus)
-                .body(response);
+                .status(status)
+                .body(ErrorResponse.builder()
+                        .timestamp(timestamp)
+                        .status(status)
+                        .error(error)
+                        .message(message)
+                        .path(path)
+                        .build());
     }
 }
