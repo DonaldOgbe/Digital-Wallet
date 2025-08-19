@@ -1,5 +1,6 @@
 package com.deodev.walletService.walletPinService.controller;
 
+import com.deodev.walletService.dto.ErrorResponse;
 import com.deodev.walletService.util.JwtUtil;
 import com.deodev.walletService.walletPinService.dto.request.SetPinRequest;
 import com.deodev.walletService.walletPinService.dto.response.CreateWalletPinResponse;
@@ -49,7 +50,7 @@ class WalletPinServiceControllerTest {
                 .build();
 
         Map<String, Object> extraClaims = new HashMap<>();
-        extraClaims.put("authorities", List.of("USER"));
+        extraClaims.put("authorities", List.of("ROLE_USER"));
 
         jwt = jwtUtil.generateToken(extraClaims,"subject");
 
@@ -70,6 +71,40 @@ class WalletPinServiceControllerTest {
         // then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(walletId).isEqualTo(response.getBody().walletId());
+    }
+
+
+    @Test
+    void testThatAccessIsDeniedAndErrorResponseIsSent() {
+        // then
+        UUID walletId = UUID.randomUUID();
+
+        SetPinRequest request = SetPinRequest.builder()
+                .newPin("5555")
+                .confirmNewPin("5555")
+                .build();
+
+        Map<String, Object> extraClaims = new HashMap<>();
+        extraClaims.put("authorities", List.of("not_user"));
+
+        jwt = jwtUtil.generateToken(extraClaims,"subject");
+
+        headers.set("Authorization", "Bearer ".concat(jwt));
+
+        HttpEntity<SetPinRequest> requestHttpEntity = new HttpEntity<>(request, headers);
+
+        // when
+        ResponseEntity<ErrorResponse> response = testRestTemplate.exchange(
+                "/api/v1/wallets/{walletId}/pin",
+                HttpMethod.POST,
+                requestHttpEntity,
+                ErrorResponse.class,
+                walletId
+        );
+
+        // then
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        assertThat(response.getBody().error()).isEqualTo("Authorization Error");
     }
 
 

@@ -45,7 +45,7 @@ public class AuthenticationFilter extends OncePerRequestFilter {
                 }
             }
         } catch (Exception e) {
-            throw new TokenValidationException("Invalid or expired JWT");
+            throw new TokenValidationException("Invalid or expired JWT", e);
         }
 
 
