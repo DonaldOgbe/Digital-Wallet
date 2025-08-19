@@ -1,13 +1,11 @@
 package com.deodev.walletService.walletPinService.service;
 
 import com.deodev.walletService.exception.PinMismatchException;
-import com.deodev.walletService.walletPinService.dto.SetPinRequest;
+import com.deodev.walletService.walletPinService.dto.request.SetPinRequest;
 import com.deodev.walletService.walletPinService.dto.response.CreateWalletPinResponse;
 import com.deodev.walletService.walletPinService.model.WalletPin;
 import com.deodev.walletService.walletPinService.repository.WalletPinRepository;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 

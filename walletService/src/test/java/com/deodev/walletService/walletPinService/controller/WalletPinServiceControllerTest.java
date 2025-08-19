@@ -1,7 +1,7 @@
 package com.deodev.walletService.walletPinService.controller;
 
 import com.deodev.walletService.util.JwtUtil;
-import com.deodev.walletService.walletPinService.dto.SetPinRequest;
+import com.deodev.walletService.walletPinService.dto.request.SetPinRequest;
 import com.deodev.walletService.walletPinService.dto.response.CreateWalletPinResponse;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -17,7 +17,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
 import static org.assertj.core.api.Assertions.*;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -72,6 +71,8 @@ class WalletPinServiceControllerTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(walletId).isEqualTo(response.getBody().walletId());
     }
+
+
 
 
 

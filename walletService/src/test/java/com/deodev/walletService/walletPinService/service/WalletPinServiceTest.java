@@ -1,6 +1,7 @@
 package com.deodev.walletService.walletPinService.service;
 
-import com.deodev.walletService.walletPinService.dto.SetPinRequest;
+import com.deodev.walletService.exception.PinMismatchException;
+import com.deodev.walletService.walletPinService.dto.request.SetPinRequest;
 import com.deodev.walletService.walletPinService.dto.response.CreateWalletPinResponse;
 import com.deodev.walletService.walletPinService.model.WalletPin;
 import com.deodev.walletService.walletPinService.repository.WalletPinRepository;
@@ -13,7 +14,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 import static org.assertj.core.api.Assertions.*;
 
@@ -56,6 +57,23 @@ class WalletPinServiceTest {
         assertThat(walletPin.getWalletId()).isEqualTo(response.walletId());
         verify(passwordEncoder).encode(request.newPin());
         verify(walletPinRepository).save(any(WalletPin.class));
+    }
+
+    @Test
+    void testCreatePinThrowsPinMismatchException() {
+        // given
+        SetPinRequest request = SetPinRequest.builder()
+                .newPin("1234")
+                .confirmNewPin("4321")
+                .build();
+
+        String walletId = "some-wallet-id";
+
+        // when & then
+        assertThrows(
+                PinMismatchException.class,
+                () -> walletPinService.createPin(request, walletId)
+        );
     }
 
 
