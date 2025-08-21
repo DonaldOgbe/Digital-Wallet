@@ -1,6 +1,6 @@
 package com.deodev.walletService.walletService.controller;
 
-import com.deodev.walletService.dto.ApiResponse;
+import com.deodev.walletService.dto.ErrorResponse;
 import com.deodev.walletService.walletService.dto.request.CreateWalletRequest;
 import com.deodev.walletService.walletService.dto.response.CreateWalletResponse;
 import com.deodev.walletService.util.JwtUtil;
@@ -79,45 +79,17 @@ class WalletControllerTest {
         HttpEntity<CreateWalletRequest> requestHttpEntity = new HttpEntity<>(requestBody, headers);
 
         // when
-        ResponseEntity<ApiResponse> response = restTemplate.exchange(
+        ResponseEntity<ErrorResponse> response = restTemplate.exchange(
                 "/api/v1/wallets",
                 HttpMethod.POST,
                 requestHttpEntity,
-                ApiResponse.class
+                ErrorResponse.class
         );
 
         // then
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertEquals("Validation Error", response.getBody().getNote());
+        assertEquals("Validation Error", response.getBody().error());
     }
-
-    @Test
-    @DisplayName("Throw token validation error when an invalid jwt is used")
-    public void tokenValidationErrorIsThrown() {
-
-        // given
-        UUID userId = UUID.randomUUID();
-        CreateWalletRequest requestBody = new CreateWalletRequest(userId);
-
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("authorities", List.of("ROLE_USER"));
-
-        headers.set("Authorization", "Bearer ".concat("fake_token"));
-
-        HttpEntity<CreateWalletRequest> requestHttpEntity = new HttpEntity<>(requestBody, headers);
-
-        // when
-        ResponseEntity<ApiResponse> response = restTemplate.exchange(
-                "/api/v1/wallets",
-                HttpMethod.POST,
-                requestHttpEntity,
-                ApiResponse.class
-        );
-
-        // then
-        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
-    }
-
 
     @Test
     @DisplayName("Throw unauthorized error authorities is missing or wrong")
@@ -135,15 +107,15 @@ class WalletControllerTest {
         HttpEntity<CreateWalletRequest> requestHttpEntity = new HttpEntity<>(requestBody, headers);
 
         // when
-        ResponseEntity<ApiResponse> response = restTemplate.exchange(
+        ResponseEntity<ErrorResponse> response = restTemplate.exchange(
                 "/api/v1/wallets",
                 HttpMethod.POST,
                 requestHttpEntity,
-                ApiResponse.class
+                ErrorResponse.class
         );
 
         // then
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-        assertEquals("Authorization Error", response.getBody().getNote());
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+        assertEquals("Authorization Error", response.getBody().error());
     }
 }

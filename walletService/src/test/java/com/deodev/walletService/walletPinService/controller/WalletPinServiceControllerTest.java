@@ -73,7 +73,6 @@ class WalletPinServiceControllerTest {
         assertThat(walletId).isEqualTo(response.getBody().walletId());
     }
 
-
     @Test
     void testThatAccessIsDeniedAndErrorResponseIsSent() {
         // then
@@ -103,7 +102,7 @@ class WalletPinServiceControllerTest {
         );
 
         // then
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
         assertThat(response.getBody().error()).isEqualTo("Authorization Error");
     }
 

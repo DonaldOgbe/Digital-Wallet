@@ -1,6 +1,5 @@
 package com.deodev.walletService.config;
 
-import com.deodev.walletService.exception.TokenValidationException;
 import com.deodev.walletService.util.JwtUtil;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -45,7 +44,7 @@ public class AuthenticationFilter extends OncePerRequestFilter {
                 }
             }
         } catch (Exception e) {
-            throw new TokenValidationException("Invalid or expired JWT", e);
+            SecurityContextHolder.clearContext();
         }
 
 

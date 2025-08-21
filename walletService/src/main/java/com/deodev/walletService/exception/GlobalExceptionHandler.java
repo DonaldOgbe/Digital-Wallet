@@ -46,7 +46,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<?> handleAuthorizationDeniedExceptions(AccessDeniedException e, HttpServletRequest request) {
         return handleResponse(
                 LocalDateTime.now(),
-                HttpStatus.UNAUTHORIZED,
+                HttpStatus.FORBIDDEN,
                 "Authorization Error",
                 "Access Denied",
                 request.getRequestURI()
