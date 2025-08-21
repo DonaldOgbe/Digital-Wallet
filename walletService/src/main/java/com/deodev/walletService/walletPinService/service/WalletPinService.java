@@ -2,6 +2,7 @@ package com.deodev.walletService.walletPinService.service;
 
 import com.deodev.walletService.exception.PinMismatchException;
 import com.deodev.walletService.walletPinService.dto.request.SetPinRequest;
+import com.deodev.walletService.walletPinService.dto.request.UpdatePinRequest;
 import com.deodev.walletService.walletPinService.dto.response.CreateWalletPinResponse;
 import com.deodev.walletService.walletPinService.model.WalletPin;
 import com.deodev.walletService.walletPinService.repository.WalletPinRepository;
@@ -21,9 +22,7 @@ public class WalletPinService {
     private final WalletPinRepository walletPinRepository;
 
     public CreateWalletPinResponse createPin(SetPinRequest request, String walletId) {
-        if (!pinsMatch(request)) {
-            throw new PinMismatchException("PINs do not match");
-        }
+        pinsMatch(request.newPin(), request.confirmNewPin());
 
         String hashedPin = passwordEncoder.encode(request.newPin());
 
@@ -41,8 +40,33 @@ public class WalletPinService {
                 .build();
     }
 
-    private boolean pinsMatch(SetPinRequest request) {
-        return request.newPin() != null &&
-                request.newPin().equals(request.confirmNewPin());
+    public CreateWalletPinResponse updatePin(UpdatePinRequest request, String walletId) {
+
+        WalletPin walletPin = walletPinRepository.findByWalletId(UUID.fromString(walletId)).orElseThrow(
+                () -> new IllegalArgumentException("WalletPin not found for walletId: %s".formatted(walletId))
+        );
+
+        if (!passwordEncoder.matches(request.oldPin(), walletPin.getPin())) {
+            throw new IllegalArgumentException("Incorrect Old Pin");
+        }
+
+        pinsMatch(request.newPin(), request.confirmNewPin());
+
+        walletPin.setPin(passwordEncoder.encode(request.newPin()));
+        walletPin.setPinUpdatedAt(LocalDateTime.now());
+
+        walletPinRepository.save(walletPin);
+
+        return CreateWalletPinResponse.builder()
+                .walletId(walletPin.getWalletId())
+                .walletPinId(walletPin.getId())
+                .timestamp(LocalDateTime.now())
+                .build();
+    }
+
+    protected void pinsMatch(String newPin, String confirmNewPin) throws PinMismatchException {
+        if (!newPin.equals(confirmNewPin)) {
+            throw new PinMismatchException("PINs do not match");
+        }
     }
 }

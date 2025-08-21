@@ -3,16 +3,23 @@ package com.deodev.walletService.walletPinService.controller;
 import com.deodev.walletService.dto.ErrorResponse;
 import com.deodev.walletService.util.JwtUtil;
 import com.deodev.walletService.walletPinService.dto.request.SetPinRequest;
+import com.deodev.walletService.walletPinService.dto.request.UpdatePinRequest;
 import com.deodev.walletService.walletPinService.dto.response.CreateWalletPinResponse;
 
+import com.deodev.walletService.walletPinService.model.WalletPin;
+import com.deodev.walletService.walletPinService.repository.WalletPinRepository;
+import jakarta.persistence.EntityManager;
+import jdk.jfr.Description;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.*;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,7 +35,16 @@ class WalletPinServiceControllerTest {
     private TestRestTemplate testRestTemplate;
 
     @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private WalletPinRepository walletPinRepository;
+
+    @Autowired
     private JwtUtil jwtUtil;
+
+    @Autowired
+    private EntityManager entityManager;
 
     private HttpHeaders headers;
     private String jwt;
@@ -74,7 +90,8 @@ class WalletPinServiceControllerTest {
     }
 
     @Test
-    void testThatAccessIsDeniedAndErrorResponseIsSent() {
+    @Description("Test that the set pin endpoint is forbidden for unauthorized user")
+    void testThatAccessIsDeniedAndErrorResponseIsSentForSetPin() {
         // then
         UUID walletId = UUID.randomUUID();
 
@@ -106,6 +123,86 @@ class WalletPinServiceControllerTest {
         assertThat(response.getBody().error()).isEqualTo("Authorization Error");
     }
 
+    @Test
+    void testThatPinIsUpdatedAnd200IsSent() {
+        // given
+        UUID walletId = UUID.randomUUID();
+
+        WalletPin walletPin = WalletPin.builder()
+                .walletId(walletId)
+                .pin(passwordEncoder.encode("1111")) // old pin
+                .pinUpdatedAt(LocalDateTime.now())
+                .build();
+
+        walletPinRepository.save(walletPin);
+
+        UpdatePinRequest request = UpdatePinRequest.builder()
+                .oldPin("1111")
+                .newPin("5555")
+                .confirmNewPin("5555")
+                .build();
+
+        Map<String, Object> extraClaims = new HashMap<>();
+        extraClaims.put("authorities", List.of("ROLE_USER"));
+
+        jwt = jwtUtil.generateToken(extraClaims, "subject");
+
+        headers.set("Authorization", "Bearer ".concat(jwt));
+
+        HttpEntity<UpdatePinRequest> requestHttpEntity = new HttpEntity<>(request, headers);
+
+        // when
+        ResponseEntity<CreateWalletPinResponse> response = testRestTemplate.exchange(
+                "/api/v1/wallets/{walletId}/pin",
+                HttpMethod.PATCH,
+                requestHttpEntity,
+                CreateWalletPinResponse.class,
+                walletId
+        );
+
+        // then
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(walletId).isEqualTo(response.getBody().walletId());
+
+        entityManager.clear();
+        WalletPin updated = walletPinRepository.findByWalletId(walletId).orElseThrow();
+        assertThat(passwordEncoder.matches("5555", updated.getPin())).isTrue();
+    }
+
+    @Test
+    @Description("Test that the set pin endpoint is forbidden for unauthorized user")
+    void testThatAccessIsDeniedAndErrorResponseIsSentForUpdatePin() {
+        // given
+        UUID walletId = UUID.randomUUID();
+
+        UpdatePinRequest request = UpdatePinRequest.builder()
+                .oldPin("1111")
+                .newPin("5555")
+                .confirmNewPin("5555")
+                .build();
+
+        Map<String, Object> extraClaims = new HashMap<>();
+        extraClaims.put("authorities", List.of("NOT_USER"));
+
+        jwt = jwtUtil.generateToken(extraClaims, "subject");
+
+        headers.set("Authorization", "Bearer ".concat(jwt));
+
+        HttpEntity<UpdatePinRequest> requestHttpEntity = new HttpEntity<>(request, headers);
+
+        // when
+        ResponseEntity<ErrorResponse> response = testRestTemplate.exchange(
+                "/api/v1/wallets/{walletId}/pin",
+                HttpMethod.PATCH,
+                requestHttpEntity,
+                ErrorResponse.class,
+                walletId
+        );
+
+        // then
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(response.getBody().error()).isEqualTo("Authorization Error");
+    }
 
 
 
