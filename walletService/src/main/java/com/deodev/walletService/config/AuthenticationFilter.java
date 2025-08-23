@@ -43,6 +43,13 @@ public class AuthenticationFilter extends OncePerRequestFilter {
                     SecurityContextHolder.getContext().setAuthentication(jwtUtil.getAuthenticationFromToken(jwt));
                 }
             }
+
+            String userId = jwtUtil.getClaimFromToken(jwt, claims -> (String) claims.get("userId"));
+
+            if (userId != null) {
+                request.setAttribute("userId", userId);
+            }
+
         } catch (Exception e) {
             SecurityContextHolder.clearContext();
         }

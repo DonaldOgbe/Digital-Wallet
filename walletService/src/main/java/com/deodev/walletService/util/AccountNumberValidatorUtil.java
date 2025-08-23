@@ -5,7 +5,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class AccountNumberValidatorUtil {
 
-    public boolean validateAccountNumber(String accountNumber) {
+    public static boolean validateAccountNumber(String accountNumber) {
         if (accountNumber.length() != 10) {
             return false;
         }
@@ -17,7 +17,7 @@ public class AccountNumberValidatorUtil {
         return Character.getNumericValue(tenthDigit) == generatedTenthDigit;
     }
 
-    private int calculateChecksum(String nineDigits) {
+    private static int calculateChecksum(String nineDigits) {
         int sum = 0;
         for (int i = 0; i < nineDigits.length(); i++) {
             int digit = Character.getNumericValue(nineDigits.charAt(i));

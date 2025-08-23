@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 public class AccountNumberGenerator {
 
 
-    private String generateRandomBaseNumber() {
+    private static String generateRandomBaseNumber() {
         StringBuilder stringBuilder = new StringBuilder();
 
         for (int i = 0; i < 9; i++) {
@@ -17,7 +17,7 @@ public class AccountNumberGenerator {
         return stringBuilder.toString();
     }
 
-    private int calculateChecksum(String nineDigits) {
+    private static int calculateChecksum(String nineDigits) {
         int sum = 0;
         for (int i = 0; i < nineDigits.length(); i++) {
             int digit = Character.getNumericValue(nineDigits.charAt(i));
@@ -26,7 +26,7 @@ public class AccountNumberGenerator {
         return sum % 10;
     }
 
-    public String generateAccountNumber() {
+    public static String generateAccountNumber() {
         String baseNumber = generateRandomBaseNumber();
         int tenthDigit = calculateChecksum(baseNumber);
 

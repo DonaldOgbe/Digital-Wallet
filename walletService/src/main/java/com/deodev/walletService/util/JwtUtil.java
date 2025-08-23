@@ -101,7 +101,7 @@ public class JwtUtil {
         }
     }
 
-    private <T> T getClaimFromToken(String token, Function<Claims, T> function) {
+    public  <T> T getClaimFromToken(String token, Function<Claims, T> function) {
         final Claims claims = getAllClaimsFromToken(token);
         return function.apply(claims);
     }

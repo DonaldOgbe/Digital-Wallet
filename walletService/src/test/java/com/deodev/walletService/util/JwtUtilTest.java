@@ -13,10 +13,7 @@ import org.springframework.security.core.Authentication;
 
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.assertj.core.api.Assertions.*;
@@ -31,6 +28,7 @@ class JwtUtilTest {
     String subject;
     Map<String, Object> extraClaims;
     List<String> authorities;
+    UUID userId = UUID.randomUUID();
 
     @BeforeEach
     void setup() {
@@ -43,6 +41,7 @@ class JwtUtilTest {
         extraClaims.put("subjectId", "1234");
         authorities = List.of("USER", "ADMIN");
         extraClaims.put("authorities", authorities);
+        extraClaims.put("userId", userId);
     }
 
     @Test
@@ -168,6 +167,19 @@ class JwtUtilTest {
 
         // then
         assertThat(result).contains("USER", "ADMIN");
+    }
+
+    @Test
+    void getClaimFromClaims() {
+        // given
+        String token = jwtUtil.generateToken(extraClaims, subject);
+
+        // when
+        UUID id = UUID.fromString(jwtUtil.getClaimFromToken(token,
+                claims -> (String) claims.get("userId")));
+
+        // then
+        assertThat(id).isEqualTo(userId);
     }
 
     @Test

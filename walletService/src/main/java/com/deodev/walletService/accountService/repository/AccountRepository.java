@@ -7,4 +7,5 @@ import java.util.UUID;
 
 public interface AccountRepository extends JpaRepository<Account, UUID> {
     boolean existsByWalletId(UUID walletId);
+    boolean existsByAccountNumber(String accountNumber);
 }
