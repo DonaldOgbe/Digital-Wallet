@@ -9,5 +9,5 @@ import java.util.UUID;
 public interface WalletPinRepository extends JpaRepository<WalletPin, UUID> {
     boolean existsByWalletId(UUID walletId);
 
-    Optional<WalletPin> findByWalletId(UUID walletId);
+    Optional<WalletPin> findByUserId(UUID userId);
 }

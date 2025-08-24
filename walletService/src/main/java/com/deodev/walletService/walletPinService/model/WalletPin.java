@@ -24,6 +24,9 @@ public class WalletPin {
     @Column(nullable = false, updatable = false)
     private UUID walletId;
 
+    @Column(nullable = false, updatable = false)
+    private UUID userId;
+
     @Column(nullable = false)
     private String pin;
 

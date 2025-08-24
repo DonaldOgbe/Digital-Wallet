@@ -6,6 +6,8 @@ import com.deodev.walletService.walletPinService.dto.request.UpdatePinRequest;
 import com.deodev.walletService.walletPinService.dto.response.CreateWalletPinResponse;
 import com.deodev.walletService.walletPinService.model.WalletPin;
 import com.deodev.walletService.walletPinService.repository.WalletPinRepository;
+import com.deodev.walletService.walletService.model.Wallet;
+import com.deodev.walletService.walletService.repository.WalletRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -21,13 +23,20 @@ public class WalletPinService {
 
     private final WalletPinRepository walletPinRepository;
 
-    public CreateWalletPinResponse createPin(SetPinRequest request, String walletId) {
+    private final WalletRepository walletRepository;
+
+    public CreateWalletPinResponse createPin(SetPinRequest request, String userId) {
         pinsMatch(request.newPin(), request.confirmNewPin());
 
         String hashedPin = passwordEncoder.encode(request.newPin());
 
+        Wallet wallet =  walletRepository.findByUserId(UUID.fromString(userId)).orElseThrow(
+                () -> new IllegalArgumentException("Wallet not found for userId: %s".formatted(userId))
+        );
+
         WalletPin walletPin = WalletPin.builder()
-                .walletId(UUID.fromString(walletId))
+                .walletId(wallet.getId())
+                .userId(UUID.fromString(userId))
                 .pin(hashedPin)
                 .build();
 
@@ -35,15 +44,16 @@ public class WalletPinService {
 
         return CreateWalletPinResponse.builder()
                 .walletId(savedPin.getWalletId())
+                .userId(savedPin.getUserId())
                 .walletPinId(savedPin.getId())
                 .timestamp(LocalDateTime.now())
                 .build();
     }
 
-    public CreateWalletPinResponse updatePin(UpdatePinRequest request, String walletId) {
+    public CreateWalletPinResponse updatePin(UpdatePinRequest request, String userId) {
 
-        WalletPin walletPin = walletPinRepository.findByWalletId(UUID.fromString(walletId)).orElseThrow(
-                () -> new IllegalArgumentException("WalletPin not found for walletId: %s".formatted(walletId))
+        WalletPin walletPin = walletPinRepository.findByUserId(UUID.fromString(userId)).orElseThrow(
+                () -> new IllegalArgumentException("WalletPin not found for userId: %s".formatted(userId))
         );
 
         if (!passwordEncoder.matches(request.oldPin(), walletPin.getPin())) {
@@ -59,6 +69,7 @@ public class WalletPinService {
 
         return CreateWalletPinResponse.builder()
                 .walletId(walletPin.getWalletId())
+                .userId(walletPin.getUserId())
                 .walletPinId(walletPin.getId())
                 .timestamp(LocalDateTime.now())
                 .build();

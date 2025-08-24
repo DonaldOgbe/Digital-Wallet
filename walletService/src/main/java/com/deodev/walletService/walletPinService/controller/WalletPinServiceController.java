@@ -20,21 +20,21 @@ public class WalletPinServiceController {
 
     private final WalletPinService walletPinService;
 
-    @PostMapping("/{walletId}/pin")
+    @PostMapping("/pin")
     @PreAuthorize("hasAuthority('ROLE_USER')")
     public ResponseEntity<?> setNewPin(@Valid
-                                       @PathVariable String walletId,
+                                       @RequestAttribute("userId") String userId,
                                        @RequestBody SetPinRequest requestBody) {
-        CreateWalletPinResponse response = walletPinService.createPin(requestBody, walletId);
+        CreateWalletPinResponse response = walletPinService.createPin(requestBody, userId);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @PreAuthorize("hasAuthority('ROLE_USER')")
-    @PatchMapping("/{walletId}/pin")
+    @PatchMapping("/pin")
     public ResponseEntity<?> updatePin(@Valid
-                                       @PathVariable String walletId,
+                                       @RequestAttribute("userId") String userId,
                                        @RequestBody UpdatePinRequest requestBody) {
-        CreateWalletPinResponse response = walletPinService.updatePin(requestBody, walletId);
+        CreateWalletPinResponse response = walletPinService.updatePin(requestBody, userId);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 }
