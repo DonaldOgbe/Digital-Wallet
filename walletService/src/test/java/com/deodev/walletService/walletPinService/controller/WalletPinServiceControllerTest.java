@@ -8,7 +8,6 @@ import com.deodev.walletService.walletPinService.dto.response.CreateWalletPinRes
 
 import com.deodev.walletService.walletPinService.model.WalletPin;
 import com.deodev.walletService.walletPinService.repository.WalletPinRepository;
-import com.deodev.walletService.walletService.dto.request.CreateWalletRequest;
 import com.deodev.walletService.walletService.service.WalletService;
 import jakarta.persistence.EntityManager;
 import jdk.jfr.Description;
@@ -63,9 +62,7 @@ class WalletPinServiceControllerTest {
     void testWalletPinIsCreatedAnd201IsSent() {
         // given
         UUID userId = UUID.randomUUID();
-        walletService.createWallet(CreateWalletRequest.builder()
-                .userId(userId)
-                .build());
+        walletService.createWallet(String.valueOf(userId));
 
         SetPinRequest request = SetPinRequest.builder()
                 .newPin("5555")

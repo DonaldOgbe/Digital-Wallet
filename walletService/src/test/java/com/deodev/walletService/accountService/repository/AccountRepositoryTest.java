@@ -22,16 +22,18 @@ class AccountRepositoryTest {
     public void testItWorks() {
         // given
         UUID walletId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
         String accountNumber = "1234567890";
 
-        Account account = new Account();
-        account.setWalletId(walletId);
-        account.setAccountNumber(accountNumber);
-        account.setCurrency(Currency.NGN);
+        Account account = Account.builder()
+                .accountNumber(accountNumber)
+                .walletId(walletId)
+                .userId(userId)
+                .currency(Currency.NGN)
+                .build();
 
         // when
         testAccountRepository.save(account);
-
 
         // then
         assertThat(testAccountRepository.existsByWalletId(walletId)).isTrue();

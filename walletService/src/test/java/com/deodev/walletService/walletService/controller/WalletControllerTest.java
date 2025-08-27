@@ -1,7 +1,6 @@
 package com.deodev.walletService.walletService.controller;
 
 import com.deodev.walletService.dto.ErrorResponse;
-import com.deodev.walletService.walletService.dto.request.CreateWalletRequest;
 import com.deodev.walletService.walletService.dto.response.CreateWalletResponse;
 import com.deodev.walletService.util.JwtUtil;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,6 +14,7 @@ import org.springframework.test.context.ActiveProfiles;
 
 import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.*;
 
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -41,15 +41,15 @@ class WalletControllerTest {
 
         // given
         UUID userId = UUID.randomUUID();
-        CreateWalletRequest request = new CreateWalletRequest(userId);
 
         Map<String, Object> claims = new HashMap<>();
         claims.put("authorities", List.of("ROLE_USER"));
+        claims.put("userId", userId);
 
         jwtUtil.clearCachedToken();
         headers.set("Authorization", "Bearer ".concat(jwtUtil.generateServiceToken(claims)));
 
-        HttpEntity<CreateWalletRequest> requestHttpEntity = new HttpEntity<>(request, headers);
+        HttpEntity<Object> requestHttpEntity = new HttpEntity<>(headers);
 
         // when
         ResponseEntity<CreateWalletResponse> response = restTemplate.exchange(
@@ -59,37 +59,13 @@ class WalletControllerTest {
                 CreateWalletResponse.class
         );
 
-        // then
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals(userId, response.getBody().userId());
-    }
-
-    @Test
-    @DisplayName("Throw validation error when a null null id is used to create a request object")
-    public void validationErrorIsThrown() {
-
-        // given
-        CreateWalletRequest requestBody = new CreateWalletRequest(null);
-
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("authorities", List.of("ROLE_USER"));
-
-        headers.set("Authorization", "Bearer ".concat(jwtUtil.generateServiceToken(claims)));
-
-        HttpEntity<CreateWalletRequest> requestHttpEntity = new HttpEntity<>(requestBody, headers);
-
-        // when
-        ResponseEntity<ErrorResponse> response = restTemplate.exchange(
-                "/api/v1/wallets",
-                HttpMethod.POST,
-                requestHttpEntity,
-                ErrorResponse.class
-        );
+        CreateWalletResponse body = response.getBody();
 
         // then
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertEquals("Validation Error", response.getBody().error());
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        assertThat(body.userId()).isEqualTo(userId);
     }
+
 
     @Test
     @DisplayName("Throw unauthorized error authorities is missing or wrong")
@@ -97,14 +73,14 @@ class WalletControllerTest {
 
         // given
         UUID userId = UUID.randomUUID();
-        CreateWalletRequest requestBody = new CreateWalletRequest(userId);
 
         Map<String, Object> claims = new HashMap<>();
         claims.put("authorities", List.of("NOT-ROLE_USER"));
+        claims.put("userId", userId);
 
         headers.set("Authorization", "Bearer ".concat(jwtUtil.generateServiceToken(claims)));
 
-        HttpEntity<CreateWalletRequest> requestHttpEntity = new HttpEntity<>(requestBody, headers);
+        HttpEntity<Object> requestHttpEntity = new HttpEntity<>(headers);
 
         // when
         ResponseEntity<ErrorResponse> response = restTemplate.exchange(
@@ -114,8 +90,10 @@ class WalletControllerTest {
                 ErrorResponse.class
         );
 
+        ErrorResponse body = response.getBody();
+
         // then
-        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
-        assertEquals("Authorization Error", response.getBody().error());
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(body.error()).isEqualTo("Authorization Error");
     }
 }

@@ -20,9 +20,11 @@ class WalletPinRepositoryTest {
     public void testItWorks() {
         // given
         UUID walletId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
 
         WalletPin walletPin = WalletPin.builder()
                 .walletId(walletId)
+                .userId(userId)
                 .pin("1234")
                 .pinUpdatedAt(LocalDateTime.now())
                 .build();

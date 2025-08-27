@@ -3,9 +3,7 @@ package com.deodev.walletService.accountService.controller;
 import com.deodev.walletService.accountService.dto.CreateAccountResponse;
 import com.deodev.walletService.enums.Currency;
 import com.deodev.walletService.util.JwtUtil;
-import com.deodev.walletService.walletService.dto.request.CreateWalletRequest;
 import com.deodev.walletService.walletService.service.WalletService;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -44,9 +42,7 @@ class AccountControllerTest {
     void createAccountAndSend201Response() {
         // given
         UUID userId = UUID.randomUUID();
-        walletService.createWallet(CreateWalletRequest.builder()
-                .userId(userId)
-                .build());
+        walletService.createWallet(String.valueOf(userId));
 
         Map<String, Object> extraClaims = new HashMap<>();
         extraClaims.put("authorities", List.of("ROLE_USER"));

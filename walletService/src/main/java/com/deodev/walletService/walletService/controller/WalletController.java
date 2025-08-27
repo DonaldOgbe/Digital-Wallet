@@ -1,6 +1,5 @@
 package com.deodev.walletService.walletService.controller;
 
-import com.deodev.walletService.walletService.dto.request.CreateWalletRequest;
 import com.deodev.walletService.walletService.dto.response.CreateWalletResponse;
 import com.deodev.walletService.walletService.service.WalletService;
 import jakarta.validation.Valid;
@@ -21,12 +20,12 @@ public class WalletController {
 
     @PostMapping
     @PreAuthorize("hasAuthority('ROLE_USER')")
-    public ResponseEntity<?> createWallet(@Valid @RequestBody CreateWalletRequest body) {
+    public ResponseEntity<?> createWallet(@RequestAttribute("userId") String userId) {
 
-        CreateWalletResponse response = walletService.createWallet(body);
+        CreateWalletResponse response = walletService.createWallet(userId);
 
         return ResponseEntity
-                .status(HttpStatus.OK)
+                .status(HttpStatus.CREATED)
                 .body(response);
     }
 }
