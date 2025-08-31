@@ -1,6 +1,7 @@
 package com.deodev.walletService.accountService.service;
 
 import com.deodev.walletService.accountService.dto.CreateAccountResponse;
+import com.deodev.walletService.accountService.dto.response.GetRecipientAccountUserDetailsResponse;
 import com.deodev.walletService.accountService.model.Account;
 import com.deodev.walletService.accountService.repository.AccountRepository;
 import com.deodev.walletService.enums.Currency;
@@ -65,6 +66,9 @@ public class AccountService {
                 .build();
     }
 
+//    public GetRecipientAccountUserDetailsResponse findAccountAndUserDetails() {
+//
+//    }
     private boolean accountNumberExists(String accountNumber) {
         return accountRepository.existsByAccountNumber(accountNumber);
     }
