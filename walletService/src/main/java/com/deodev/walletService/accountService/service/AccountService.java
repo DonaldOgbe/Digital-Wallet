@@ -4,10 +4,14 @@ import com.deodev.walletService.accountService.dto.CreateAccountResponse;
 import com.deodev.walletService.accountService.dto.response.GetRecipientAccountUserDetailsResponse;
 import com.deodev.walletService.accountService.model.Account;
 import com.deodev.walletService.accountService.repository.AccountRepository;
+import com.deodev.walletService.client.UserServiceClient;
+import com.deodev.walletService.dto.response.GetUserDetailsResponse;
 import com.deodev.walletService.enums.Currency;
 import com.deodev.walletService.exception.DuplicateAccountNumberException;
+import com.deodev.walletService.exception.ExternalServiceException;
 import com.deodev.walletService.walletService.model.Wallet;
 import com.deodev.walletService.walletService.repository.WalletRepository;
+import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -23,6 +27,7 @@ public class AccountService {
 
     private final AccountRepository accountRepository;
     private final WalletRepository walletRepository;
+    private final UserServiceClient userServiceClient;
 
 
     public CreateAccountResponse createAccount(String userId, Currency currency) {
@@ -66,9 +71,25 @@ public class AccountService {
                 .build();
     }
 
-//    public GetRecipientAccountUserDetailsResponse findAccountAndUserDetails() {
-//
-//    }
+    public GetRecipientAccountUserDetailsResponse findAccountAndUserDetails(String accountNumber, String jwt) {
+        Account recipientAccount = accountRepository.findByAccountNumber(accountNumber)
+                .orElseThrow(() -> new IllegalArgumentException("Account number does not exist"));
+
+        try {
+            GetUserDetailsResponse userDetails = userServiceClient.getUser(
+                    recipientAccount.getUserId().toString(),
+                    "Bearer " + jwt);
+
+            return GetRecipientAccountUserDetailsResponse.builder()
+                    .username(userDetails.username())
+                    .firstName(userDetails.firstName())
+                    .lastName(userDetails.lastName())
+                    .build();
+        } catch (FeignException ex) {
+            throw new ExternalServiceException(ex.getMessage(), ex.getCause());
+        }
+    }
+
     private boolean accountNumberExists(String accountNumber) {
         return accountRepository.existsByAccountNumber(accountNumber);
     }

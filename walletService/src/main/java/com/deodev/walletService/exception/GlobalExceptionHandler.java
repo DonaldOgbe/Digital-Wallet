@@ -77,6 +77,17 @@ public class GlobalExceptionHandler {
         );
     }
 
+    @ExceptionHandler(ExternalServiceException.class)
+    public ResponseEntity<?> handleExternalServiceException(ExternalServiceException ex, HttpServletRequest request) {
+        return handleResponse(
+                LocalDateTime.now(),
+                HttpStatus.FAILED_DEPENDENCY,
+                "External Service Error",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+    }
+
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<?> handleExceptions(Exception e, HttpServletRequest request) {

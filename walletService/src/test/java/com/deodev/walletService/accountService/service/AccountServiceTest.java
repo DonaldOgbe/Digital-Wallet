@@ -1,8 +1,11 @@
 package com.deodev.walletService.accountService.service;
 
 import com.deodev.walletService.accountService.dto.CreateAccountResponse;
+import com.deodev.walletService.accountService.dto.response.GetRecipientAccountUserDetailsResponse;
 import com.deodev.walletService.accountService.model.Account;
 import com.deodev.walletService.accountService.repository.AccountRepository;
+import com.deodev.walletService.client.UserServiceClient;
+import com.deodev.walletService.dto.response.GetUserDetailsResponse;
 import com.deodev.walletService.enums.Currency;
 import com.deodev.walletService.exception.DuplicateAccountNumberException;
 import com.deodev.walletService.walletService.model.Wallet;
@@ -33,6 +36,9 @@ class AccountServiceTest {
 
     @Mock
     private WalletRepository walletRepository;
+
+    @Mock
+    private UserServiceClient userServiceClient;
 
     @Test
     void createAccountAndSendResponse() {
@@ -129,5 +135,42 @@ class AccountServiceTest {
         verify(walletRepository).findByUserId(userId);
         verify(accountRepository).existsByAccountNumber(any());
         verify(accountRepository).save(any());
+    }
+
+    @Test
+    void getRecipientAccountUserDetailsAndSendResponse() {
+        // given
+        String accountNumber = "0123456789";
+        String jwt = "jwt-token";
+
+        Account account = Account.builder()
+                .id(UUID.randomUUID())
+                .accountNumber(accountNumber)
+                .userId(UUID.randomUUID())
+                .build();
+
+        GetUserDetailsResponse userDetails = GetUserDetailsResponse.builder()
+                .username("username")
+                .firstName("John")
+                .lastName("Doe")
+                .build();
+
+        when(accountRepository.findByAccountNumber(accountNumber))
+                .thenReturn(Optional.of(account));
+
+        when(userServiceClient.getUser(account.getUserId().toString(), "Bearer " + jwt))
+                .thenReturn(userDetails);
+
+        // when
+        GetRecipientAccountUserDetailsResponse actualResponse =
+                accountService.findAccountAndUserDetails(accountNumber, jwt);
+
+        // then
+        assertThat(actualResponse.username()).isEqualTo("username");
+        assertThat(actualResponse.firstName()).isEqualTo("John");
+        assertThat(actualResponse.lastName()).isEqualTo("Doe");
+
+        verify(accountRepository).findByAccountNumber(accountNumber);
+        verify(userServiceClient).getUser(account.getUserId().toString(), "Bearer " + jwt);
     }
 }
