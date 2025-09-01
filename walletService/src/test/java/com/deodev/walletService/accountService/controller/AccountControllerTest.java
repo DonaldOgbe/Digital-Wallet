@@ -2,6 +2,7 @@ package com.deodev.walletService.accountService.controller;
 
 import com.deodev.walletService.accountService.dto.CreateAccountResponse;
 import com.deodev.walletService.accountService.dto.response.GetRecipientAccountUserDetailsResponse;
+import com.deodev.walletService.accountService.dto.response.GetUserAccountsResponse;
 import com.deodev.walletService.accountService.service.AccountService;
 import com.deodev.walletService.client.UserServiceClient;
 import com.deodev.walletService.dto.response.GetUserDetailsResponse;
@@ -138,7 +139,38 @@ class AccountControllerTest {
         assertThat(body.lastName()).isEqualTo("Doe");
     }
 
+    @Test
+    void getUserAccountsAndSend200Response() {
+        // given
+        UUID userId = UUID.randomUUID();
+        walletService.createWallet(String.valueOf(userId));
+        accountService.createAccount(String.valueOf(userId), Currency.NGN);
+        accountService.createAccount(String.valueOf(userId), Currency.USD);
 
+        extraClaims.put("authorities", List.of("ROLE_USER"));
+        extraClaims.put("userId", userId);
 
+        jwt = jwtUtil.generateToken(extraClaims, "subject");
+        headers.set("Authorization", "Bearer %s".formatted(jwt));
+
+        HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
+
+        // when
+        ResponseEntity<GetUserAccountsResponse> response = testRestTemplate.exchange(
+                "/api/v1/wallets/accounts",
+                HttpMethod.GET,
+                requestEntity,
+                GetUserAccountsResponse.class
+        );
+
+        // then
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+        GetUserAccountsResponse body = response.getBody();
+        assertThat(body).isNotNull();
+        assertThat(body.accounts()).hasSize(2);
+        assertThat(body.accounts())
+                .allSatisfy(account -> assertThat(account.getUserId()).isEqualTo(userId));
+    }
 
 }
