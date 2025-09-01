@@ -2,6 +2,7 @@ package com.deodev.walletService.accountService.service;
 
 import com.deodev.walletService.accountService.dto.CreateAccountResponse;
 import com.deodev.walletService.accountService.dto.response.GetRecipientAccountUserDetailsResponse;
+import com.deodev.walletService.accountService.dto.response.GetUserAccountsResponse;
 import com.deodev.walletService.accountService.model.Account;
 import com.deodev.walletService.accountService.repository.AccountRepository;
 import com.deodev.walletService.client.UserServiceClient;
@@ -17,6 +18,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 import static com.deodev.walletService.util.AccountNumberGenerator.*;
 import static com.deodev.walletService.util.AccountNumberValidatorUtil.*;
@@ -88,6 +90,15 @@ public class AccountService {
         } catch (FeignException ex) {
             throw new ExternalServiceException(ex.getMessage(), ex.getCause());
         }
+    }
+
+    public GetUserAccountsResponse getUserAccounts(String userId) {
+        List<Account> accounts = accountRepository.findByUserId(UUID.fromString(userId))
+                .orElseThrow(() -> new IllegalArgumentException("Account(s) not found under user ID: " + userId));
+
+        return GetUserAccountsResponse.builder()
+                .accounts(accounts)
+                .build();
     }
 
     private boolean accountNumberExists(String accountNumber) {

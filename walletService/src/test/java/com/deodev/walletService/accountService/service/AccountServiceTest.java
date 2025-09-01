@@ -2,6 +2,7 @@ package com.deodev.walletService.accountService.service;
 
 import com.deodev.walletService.accountService.dto.CreateAccountResponse;
 import com.deodev.walletService.accountService.dto.response.GetRecipientAccountUserDetailsResponse;
+import com.deodev.walletService.accountService.dto.response.GetUserAccountsResponse;
 import com.deodev.walletService.accountService.model.Account;
 import com.deodev.walletService.accountService.repository.AccountRepository;
 import com.deodev.walletService.client.UserServiceClient;
@@ -18,6 +19,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -208,6 +210,47 @@ class AccountServiceTest {
         // when + then
         assertThrows(ExternalServiceException.class, () -> {
             accountService.findAccountAndUserDetails(accountNumber, jwt);
+        });
+    }
+
+    @Test
+    void getUserAccounts_ReturnsListOfAccounts() {
+        // given
+        UUID userId = UUID.randomUUID();
+        Account account1 = Account.builder()
+                .id(UUID.randomUUID())
+                .balance(10000L)
+                .accountNumber("1234567890").build();
+
+        Account account2 = Account.builder()
+                .id(UUID.randomUUID())
+                .balance(10000L)
+                .accountNumber("9876543210").build();
+
+        List<Account> accounts = List.of(account1, account2);
+
+        when(accountRepository.findByUserId(userId)).thenReturn(Optional.of(accounts));
+
+        // when
+        GetUserAccountsResponse response = accountService.getUserAccounts(userId.toString());
+
+        // then
+        assertThat(response).isNotNull();
+        assertThat(response.accounts()).hasSize(2);
+
+        verify(accountRepository).findByUserId(any());
+    }
+
+    @Test
+    void getUserAccounts_Throws_Error_For_Missing_Account() {
+        // given
+        UUID userId = UUID.randomUUID();
+
+        when(accountRepository.findByUserId(userId)).thenReturn(Optional.empty());
+
+        // when + then
+        assertThrows(IllegalArgumentException.class, () -> {
+            accountService.getUserAccounts(userId.toString());
         });
     }
 }
