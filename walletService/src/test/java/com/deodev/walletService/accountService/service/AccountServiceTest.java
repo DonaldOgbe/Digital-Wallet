@@ -8,15 +8,15 @@ import com.deodev.walletService.client.UserServiceClient;
 import com.deodev.walletService.dto.response.GetUserDetailsResponse;
 import com.deodev.walletService.enums.Currency;
 import com.deodev.walletService.exception.DuplicateAccountNumberException;
+import com.deodev.walletService.exception.ExternalServiceException;
 import com.deodev.walletService.walletService.model.Wallet;
 import com.deodev.walletService.walletService.repository.WalletRepository;
+import feign.FeignException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.dao.DataIntegrityViolationException;
-
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
@@ -172,5 +172,42 @@ class AccountServiceTest {
 
         verify(accountRepository).findByAccountNumber(accountNumber);
         verify(userServiceClient).getUser(account.getUserId().toString(), "Bearer " + jwt);
+    }
+
+    @Test
+    void givenMissingAccount_whenFindAccountAndUserDetails_thenThrowIllegalArgument() {
+        // given
+        String accountNumber = "9999999999";
+        String jwt = "jwt-token";
+        when(accountRepository.findByAccountNumber(accountNumber))
+                .thenReturn(Optional.empty());
+
+        // when + then
+        assertThrows(IllegalArgumentException.class, () -> {
+            accountService.findAccountAndUserDetails(accountNumber, jwt);
+        });
+    }
+
+    @Test
+    void givenFeignClientThrows_whenFindAccountAndUserDetails_thenThrowExternalServiceException() {
+        // given
+        String accountNumber = "0123456789";
+        String jwt = "jwt-token";
+        Account account = Account.builder()
+                .id(UUID.randomUUID())
+                .userId(UUID.randomUUID())
+                .accountNumber(accountNumber)
+                .build();
+
+        when(accountRepository.findByAccountNumber(accountNumber))
+                .thenReturn(Optional.of(account));
+
+        when(userServiceClient.getUser(account.getUserId().toString(),"Bearer " + jwt))
+                .thenThrow(FeignException.class);
+
+        // when + then
+        assertThrows(ExternalServiceException.class, () -> {
+            accountService.findAccountAndUserDetails(accountNumber, jwt);
+        });
     }
 }
