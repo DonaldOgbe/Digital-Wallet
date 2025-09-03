@@ -6,6 +6,7 @@ import com.deodev.walletService.walletPinService.dto.request.SetPinRequest;
 import com.deodev.walletService.walletPinService.dto.request.UpdatePinRequest;
 import com.deodev.walletService.walletPinService.dto.response.CreateWalletPinResponse;
 
+import com.deodev.walletService.walletPinService.dto.response.ValidateWalletPinResponse;
 import com.deodev.walletService.walletPinService.model.WalletPin;
 import com.deodev.walletService.walletPinService.repository.WalletPinRepository;
 import com.deodev.walletService.walletService.service.WalletService;
@@ -51,11 +52,14 @@ class WalletPinServiceControllerTest {
     private WalletService walletService;
 
     private HttpHeaders headers;
+    private Map<String, Object> extraClaims;
     private String jwt;
 
     @BeforeEach
     void setUp() {
         headers = new HttpHeaders();
+        extraClaims = new HashMap<>();
+        extraClaims.put("authorities", List.of("ROLE_USER"));
     }
 
     @Test
@@ -69,8 +73,6 @@ class WalletPinServiceControllerTest {
                 .confirmNewPin("5555")
                 .build();
 
-        Map<String, Object> extraClaims = new HashMap<>();
-        extraClaims.put("authorities", List.of("ROLE_USER"));
         extraClaims.put("userId", userId);
 
         jwt = jwtUtil.generateToken(extraClaims,"subject");
@@ -105,7 +107,6 @@ class WalletPinServiceControllerTest {
                 .confirmNewPin("5555")
                 .build();
 
-        Map<String, Object> extraClaims = new HashMap<>();
         extraClaims.put("authorities", List.of("not_user"));
         extraClaims.put("userId", userId);
 
@@ -137,7 +138,7 @@ class WalletPinServiceControllerTest {
         WalletPin walletPin = WalletPin.builder()
                 .walletId(walletId)
                 .userId(userId)
-                .pin(passwordEncoder.encode("1111")) // old pin
+                .pin(passwordEncoder.encode("1111"))
                 .pinUpdatedAt(LocalDateTime.now())
                 .build();
 
@@ -149,8 +150,6 @@ class WalletPinServiceControllerTest {
                 .confirmNewPin("5555")
                 .build();
 
-        Map<String, Object> extraClaims = new HashMap<>();
-        extraClaims.put("authorities", List.of("ROLE_USER"));
         extraClaims.put("userId", userId);
 
         jwt = jwtUtil.generateToken(extraClaims, "subject");
@@ -213,6 +212,45 @@ class WalletPinServiceControllerTest {
         // then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
         assertThat(response.getBody().error()).isEqualTo("Authorization Error");
+    }
+
+    @Test
+    void validatePin_ReturnOk_AndSuccess() {
+        // given
+        UUID userId = UUID.randomUUID();
+        UUID walletId = UUID.randomUUID();
+
+        WalletPin walletPin = WalletPin.builder()
+                .walletId(walletId)
+                .userId(userId)
+                .pin(passwordEncoder.encode("1111"))
+                .pinUpdatedAt(LocalDateTime.now())
+                .build();
+
+        walletPinRepository.save(walletPin);
+
+        extraClaims.put("userId", userId);
+
+        jwt = jwtUtil.generateToken(extraClaims, "subject");
+
+        headers.set("Authorization", "Bearer ".concat(jwt));
+        headers.set("Wallet-Pin", "1111");
+
+        HttpEntity<Void> httpEntity = new HttpEntity<>(headers);
+
+        // when
+        ResponseEntity<ValidateWalletPinResponse> response = testRestTemplate.exchange(
+                "/api/v1/wallets/pin/validate",
+                HttpMethod.POST,
+                httpEntity,
+                ValidateWalletPinResponse.class
+        );
+
+        ValidateWalletPinResponse body = response.getBody();
+
+        // then
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(body.isSuccess()).isTrue();
     }
 
 

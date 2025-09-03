@@ -3,6 +3,7 @@ package com.deodev.walletService.walletPinService.controller;
 import com.deodev.walletService.walletPinService.dto.request.SetPinRequest;
 import com.deodev.walletService.walletPinService.dto.request.UpdatePinRequest;
 import com.deodev.walletService.walletPinService.dto.response.CreateWalletPinResponse;
+import com.deodev.walletService.walletPinService.dto.response.ValidateWalletPinResponse;
 import com.deodev.walletService.walletPinService.service.WalletPinService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -37,4 +38,13 @@ public class WalletPinServiceController {
         CreateWalletPinResponse response = walletPinService.updatePin(requestBody, userId);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
+
+    @PreAuthorize("hasAuthority('ROLE_USER')")
+    @PostMapping("/pin/validate")
+    public ResponseEntity<?> validatePin(@RequestAttribute("userId") String userId,
+                                         @RequestHeader("Wallet-Pin") String pin) {
+        ValidateWalletPinResponse response = walletPinService.validatePin(userId, pin);
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
 }
