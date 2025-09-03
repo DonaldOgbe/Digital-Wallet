@@ -4,6 +4,7 @@ import com.deodev.walletService.exception.PinMismatchException;
 import com.deodev.walletService.walletPinService.dto.request.SetPinRequest;
 import com.deodev.walletService.walletPinService.dto.request.UpdatePinRequest;
 import com.deodev.walletService.walletPinService.dto.response.CreateWalletPinResponse;
+import com.deodev.walletService.walletPinService.dto.response.ValidateWalletPinResponse;
 import com.deodev.walletService.walletPinService.model.WalletPin;
 import com.deodev.walletService.walletPinService.repository.WalletPinRepository;
 import com.deodev.walletService.walletService.model.Wallet;
@@ -22,6 +23,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 import static org.assertj.core.api.Assertions.*;
+import static com.deodev.walletService.common.ErrorCodes.*;
 
 
 @ExtendWith(MockitoExtension.class)
@@ -161,5 +163,70 @@ class WalletPinServiceTest {
                 () -> walletPinService.updatePin(request, String.valueOf(walletId)));
     }
 
+    @Test
+    void validatePin_ReturnsSuccess_WhenPinMatches() {
+        // given
+        String userId = UUID.randomUUID().toString();
+        String rawPin = "1234";
+        String storedPin = "hashed-pin";
+
+        WalletPin walletPin = WalletPin.builder()
+                .userId(UUID.fromString(userId))
+                .pin(storedPin)
+                .build();
+
+        when(walletPinRepository.findByUserId(UUID.fromString(userId)))
+                .thenReturn(Optional.of(walletPin));
+
+        when(passwordEncoder.matches(rawPin, storedPin)).thenReturn(true);
+
+        // when
+        ValidateWalletPinResponse response = walletPinService.validatePin(userId, rawPin);
+
+        // then
+        assertThat(response.isSuccess()).isTrue();
+    }
+
+    @Test
+    void validatePin_ReturnsFailure_WhenPinNotFound() {
+        // given
+        String userId = UUID.randomUUID().toString();
+        String rawPin = "1234";
+
+        when(walletPinRepository.findByUserId(any()))
+                .thenReturn(Optional.empty());
+
+        // when
+        ValidateWalletPinResponse response = walletPinService.validatePin(userId, rawPin);
+
+        // then
+        assertThat(response.isSuccess()).isFalse();
+        assertThat(response.errorCode()).isEqualTo(NOT_FOUND);
+    }
+
+    @Test
+    void validatePin_ReturnsFailure_WhenPinMisMatches() {
+        // given
+        String userId = UUID.randomUUID().toString();
+        String rawPin = "1234";
+        String storedPin = "hashed-pin";
+
+        WalletPin walletPin = WalletPin.builder()
+                .userId(UUID.fromString(userId))
+                .pin(storedPin)
+                .build();
+
+        when(walletPinRepository.findByUserId(UUID.fromString(userId)))
+                .thenReturn(Optional.of(walletPin));
+
+        when(passwordEncoder.matches(rawPin, storedPin)).thenReturn(false);
+
+        // when
+        ValidateWalletPinResponse response = walletPinService.validatePin(userId, rawPin);
+
+        // then
+        assertThat(response.isSuccess()).isFalse();
+        assertThat(response.errorCode()).isEqualTo(INVALID_PIN);
+    }
 
 }
