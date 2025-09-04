@@ -4,7 +4,7 @@ import lombok.Builder;
 
 @Builder
 public record ValidateWalletPinResponse(
-        boolean isSuccess,
+        boolean isValid,
         String errorCode
 ) {
 }

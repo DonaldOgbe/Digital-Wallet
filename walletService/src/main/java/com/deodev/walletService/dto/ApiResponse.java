@@ -1,9 +1,9 @@
 package com.deodev.walletService.dto;
 
 import lombok.*;
+import org.springframework.http.HttpStatus;
 
-@Getter
-@Setter
+@Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
@@ -12,24 +12,25 @@ public class ApiResponse<T> {
     @Builder.Default
     private boolean success = true;
 
-    private String message;
+    private int status;
 
-    private String note;
+    @Builder.Default
+    private String errorCode = null;
 
     private T data;
 
-    public static <T> ApiResponse<T> success(String message, T data) {
+    public static <T> ApiResponse<T> success(int status, T data) {
         return ApiResponse.<T>builder()
-                .message(message)
+                .status(status)
                 .data(data)
                 .build();
     }
 
-    public static <T> ApiResponse<T> error(String message, String note, T data) {
+    public static <T> ApiResponse<T> error(int status, String errorCode, T data) {
         return ApiResponse.<T>builder()
                 .success(false)
-                .message(message)
-                .note(note)
+                .status(status)
+                .errorCode(errorCode)
                 .data(data)
                 .build();
     }

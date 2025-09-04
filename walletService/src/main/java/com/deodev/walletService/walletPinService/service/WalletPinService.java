@@ -91,24 +91,24 @@ public class WalletPinService {
             }
 
             return ValidateWalletPinResponse.builder()
-                    .isSuccess(true)
+                    .isValid(true)
                     .build();
         } catch (IllegalArgumentException e) {
             log.error(e.getMessage(), e);
             return ValidateWalletPinResponse.builder()
-                    .isSuccess(false)
+                    .isValid(false)
                     .errorCode(NOT_FOUND)
                     .build();
         } catch (PinMismatchException e) {
             log.error(e.getMessage(), e);
             return ValidateWalletPinResponse.builder()
-                    .isSuccess(false)
+                    .isValid(false)
                     .errorCode(INVALID_PIN)
                     .build();
         } catch (Exception e) {
             log.error(e.getMessage(), e);
             return ValidateWalletPinResponse.builder()
-                    .isSuccess(false)
+                    .isValid(false)
                     .errorCode(SYSTEM_ERROR)
                     .build();
         }

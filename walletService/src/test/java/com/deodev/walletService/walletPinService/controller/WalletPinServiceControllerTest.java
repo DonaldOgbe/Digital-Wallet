@@ -1,5 +1,6 @@
 package com.deodev.walletService.walletPinService.controller;
 
+import com.deodev.walletService.dto.ApiResponse;
 import com.deodev.walletService.dto.ErrorResponse;
 import com.deodev.walletService.util.JwtUtil;
 import com.deodev.walletService.walletPinService.dto.request.SetPinRequest;
@@ -17,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
@@ -239,25 +241,18 @@ class WalletPinServiceControllerTest {
         HttpEntity<Void> httpEntity = new HttpEntity<>(headers);
 
         // when
-        ResponseEntity<ValidateWalletPinResponse> response = testRestTemplate.exchange(
+        ResponseEntity<ApiResponse<ValidateWalletPinResponse>> response = testRestTemplate.exchange(
                 "/api/v1/wallets/pin/validate",
                 HttpMethod.POST,
                 httpEntity,
-                ValidateWalletPinResponse.class
+                new ParameterizedTypeReference<ApiResponse<ValidateWalletPinResponse>>() {}
         );
 
-        ValidateWalletPinResponse body = response.getBody();
+        ValidateWalletPinResponse body = (ValidateWalletPinResponse) response.getBody().getData();
 
         // then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(body.isSuccess()).isTrue();
+        assertThat(body.isValid()).isTrue();
     }
-
-
-
-
-
-
-
 
 }
