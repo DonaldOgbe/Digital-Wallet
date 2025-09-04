@@ -1,8 +1,10 @@
 package com.deodev.walletService.accountService.service;
 
-import com.deodev.walletService.accountService.dto.CreateAccountResponse;
+import com.deodev.walletService.accountService.dto.response.CreateAccountResponse;
 import com.deodev.walletService.accountService.dto.response.GetRecipientAccountUserDetailsResponse;
 import com.deodev.walletService.accountService.dto.response.GetUserAccountsResponse;
+import com.deodev.walletService.accountService.dto.response.ReserveFundsResponse;
+import com.deodev.walletService.accountService.dto.response.request.ReserveFundsRequest;
 import com.deodev.walletService.accountService.model.Account;
 import com.deodev.walletService.accountService.repository.AccountRepository;
 import com.deodev.walletService.client.UserServiceClient;
@@ -13,6 +15,7 @@ import com.deodev.walletService.exception.ExternalServiceException;
 import com.deodev.walletService.walletService.model.Wallet;
 import com.deodev.walletService.walletService.repository.WalletRepository;
 import feign.FeignException;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -253,4 +256,108 @@ class AccountServiceTest {
             accountService.getUserAccounts(userId.toString());
         });
     }
+
+    @Nested
+    class reserveFunds {
+
+        @Test
+        void reserveFunds_ReturnsSuccess() {
+            // given
+            UUID userId = UUID.randomUUID();
+            String accountNumber = "0123456789";
+
+            Account account = Account.builder()
+                    .userId(userId)
+                    .accountNumber(accountNumber)
+                    .balance(10000L)
+                    .build();
+
+            ReserveFundsRequest request = ReserveFundsRequest.builder()
+                    .accountNumber(accountNumber)
+                    .amount(1000L)
+                    .build();
+
+            when(accountRepository.findByUserIdAndAccountNumber(userId, accountNumber)).thenReturn(Optional.of(account));
+
+            // when
+            ReserveFundsResponse response = accountService.reserveFunds(request, String.valueOf(userId));
+
+            // then
+            assertThat(response.isSuccess()).isTrue();
+            verify(accountRepository).save(any());
+        }
+
+        @Test
+        void reserveFunds_ThrowsInsufficientFunds() {
+            // given
+            UUID userId = UUID.randomUUID();
+            String accountNumber = "0123456789";
+
+            Account account = Account.builder()
+                    .userId(userId)
+                    .accountNumber(accountNumber)
+                    .balance(500L)
+                    .build();
+
+            ReserveFundsRequest request = ReserveFundsRequest.builder()
+                    .accountNumber(accountNumber)
+                    .amount(1000L)
+                    .build();
+
+            when(accountRepository.findByUserIdAndAccountNumber(userId, accountNumber))
+                    .thenReturn(Optional.of(account));
+
+            // when
+            ReserveFundsResponse response = accountService.reserveFunds(request, String.valueOf(userId));
+
+            // then
+            assertThat(response.isSuccess()).isFalse();
+            assertThat(response.errorCode()).isEqualTo("INSUFFICIENT_FUNDS");
+        }
+
+        @Test
+        void reserveFunds_AccountNotFound() {
+            // given
+            UUID userId = UUID.randomUUID();
+            String accountNumber = "0123456789";
+
+            ReserveFundsRequest request = ReserveFundsRequest.builder()
+                    .accountNumber(accountNumber)
+                    .amount(1000L)
+                    .build();
+
+            when(accountRepository.findByUserIdAndAccountNumber(userId, accountNumber))
+                    .thenReturn(Optional.empty());
+
+            // when
+            ReserveFundsResponse response = accountService.reserveFunds(request, String.valueOf(userId));
+
+            // then
+            assertThat(response.isSuccess()).isFalse();
+            assertThat(response.errorCode()).isEqualTo("NOT_FOUND");
+        }
+
+        @Test
+        void reserveFunds_UnexpectedError() {
+            // given
+            UUID userId = UUID.randomUUID();
+            String accountNumber = "0123456789";
+
+            ReserveFundsRequest request = ReserveFundsRequest.builder()
+                    .accountNumber(accountNumber)
+                    .amount(1000L)
+                    .build();
+
+            when(accountRepository.findByUserIdAndAccountNumber(userId, accountNumber))
+                    .thenThrow(new RuntimeException("DB down"));
+
+            // when
+            ReserveFundsResponse response = accountService.reserveFunds(request, String.valueOf(userId));
+
+            // then
+            assertThat(response.isSuccess()).isFalse();
+            assertThat(response.errorCode()).isEqualTo("SYSTEM_ERROR");
+        }
+    }
+
 }

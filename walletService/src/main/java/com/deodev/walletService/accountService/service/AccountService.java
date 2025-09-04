@@ -1,8 +1,9 @@
 package com.deodev.walletService.accountService.service;
 
-import com.deodev.walletService.accountService.dto.CreateAccountResponse;
+import com.deodev.walletService.accountService.dto.response.CreateAccountResponse;
 import com.deodev.walletService.accountService.dto.response.GetRecipientAccountUserDetailsResponse;
 import com.deodev.walletService.accountService.dto.response.GetUserAccountsResponse;
+import com.deodev.walletService.accountService.dto.response.request.ReserveFundsRequest;
 import com.deodev.walletService.accountService.model.Account;
 import com.deodev.walletService.accountService.repository.AccountRepository;
 import com.deodev.walletService.client.UserServiceClient;
@@ -10,10 +11,13 @@ import com.deodev.walletService.dto.response.GetUserDetailsResponse;
 import com.deodev.walletService.enums.Currency;
 import com.deodev.walletService.exception.DuplicateAccountNumberException;
 import com.deodev.walletService.exception.ExternalServiceException;
+import com.deodev.walletService.accountService.dto.response.ReserveFundsResponse;
+import com.deodev.walletService.exception.InsufficientBalanceException;
 import com.deodev.walletService.walletService.model.Wallet;
 import com.deodev.walletService.walletService.repository.WalletRepository;
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
@@ -22,7 +26,9 @@ import java.util.List;
 import java.util.UUID;
 import static com.deodev.walletService.util.AccountNumberGenerator.*;
 import static com.deodev.walletService.util.AccountNumberValidatorUtil.*;
+import static com.deodev.walletService.common.ErrorCodes.*;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AccountService {
@@ -99,6 +105,49 @@ public class AccountService {
         return GetUserAccountsResponse.builder()
                 .accounts(accounts)
                 .build();
+    }
+
+    public ReserveFundsResponse reserveFunds(ReserveFundsRequest request, String userId) {
+        try {
+            Account account = accountRepository.findByUserIdAndAccountNumber(UUID.fromString(userId), request.accountNumber())
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "Account not found for userId: %s".formatted(userId)
+                    ));
+
+            if (account.getBalance() < request.amount()) {
+                throw new InsufficientBalanceException(
+                        "Insufficient funds for userId: %s".formatted(userId)
+                );
+            }
+
+            account.setBalance(account.getBalance() - request.amount());
+            accountRepository.save(account);
+
+            return ReserveFundsResponse.builder()
+                    .isSuccess(true)
+                    .build();
+
+        } catch (InsufficientBalanceException e) {
+            log.error(e.getMessage(), e);
+            return ReserveFundsResponse.builder()
+                    .isSuccess(false)
+                    .errorCode(INSUFFICIENT_FUNDS)
+                    .build();
+
+        } catch (IllegalArgumentException e) {
+            log.error(e.getMessage(), e);
+            return ReserveFundsResponse.builder()
+                    .isSuccess(false)
+                    .errorCode(NOT_FOUND)
+                    .build();
+
+        } catch (Exception e) {
+            log.error("Unexpected error reserving funds, {}", e.getMessage(), e);
+            return ReserveFundsResponse.builder()
+                    .isSuccess(false)
+                    .errorCode(SYSTEM_ERROR)
+                    .build();
+        }
     }
 
     private boolean accountNumberExists(String accountNumber) {

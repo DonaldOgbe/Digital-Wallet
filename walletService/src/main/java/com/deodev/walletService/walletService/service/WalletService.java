@@ -3,7 +3,6 @@ package com.deodev.walletService.walletService.service;
 import com.deodev.walletService.walletService.dto.response.CreateWalletResponse;
 import com.deodev.walletService.walletService.model.Wallet;
 import com.deodev.walletService.walletService.repository.WalletRepository;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

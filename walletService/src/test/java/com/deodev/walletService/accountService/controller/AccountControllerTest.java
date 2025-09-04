@@ -1,6 +1,6 @@
 package com.deodev.walletService.accountService.controller;
 
-import com.deodev.walletService.accountService.dto.CreateAccountResponse;
+import com.deodev.walletService.accountService.dto.response.CreateAccountResponse;
 import com.deodev.walletService.accountService.dto.response.GetRecipientAccountUserDetailsResponse;
 import com.deodev.walletService.accountService.dto.response.GetUserAccountsResponse;
 import com.deodev.walletService.accountService.service.AccountService;
@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 

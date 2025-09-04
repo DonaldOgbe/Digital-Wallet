@@ -1,4 +1,4 @@
-package com.deodev.walletService.accountService.dto;
+package com.deodev.walletService.accountService.dto.response;
 
 import com.deodev.walletService.enums.Currency;
 import lombok.Builder;
