@@ -3,8 +3,12 @@ package com.deodev.walletService.accountService.controller;
 import com.deodev.walletService.accountService.dto.response.CreateAccountResponse;
 import com.deodev.walletService.accountService.dto.response.GetRecipientAccountUserDetailsResponse;
 import com.deodev.walletService.accountService.dto.response.GetUserAccountsResponse;
+import com.deodev.walletService.accountService.dto.response.ReserveFundsResponse;
+import com.deodev.walletService.accountService.dto.response.request.ReserveFundsRequest;
 import com.deodev.walletService.accountService.service.AccountService;
+import com.deodev.walletService.dto.ApiResponse;
 import com.deodev.walletService.enums.Currency;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -27,7 +31,8 @@ public class AccountController {
 
         CreateAccountResponse response = accountService.createAccount(userId, currency);
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+                ApiResponse.success(HttpStatus.CREATED.value(), response));
     }
 
     @PreAuthorize("hasAuthority('ROLE_USER')")
@@ -36,7 +41,8 @@ public class AccountController {
                                                  @RequestHeader("Authorization") String jwt) {
         GetRecipientAccountUserDetailsResponse response = accountService.findAccountAndUserDetails(accountNumber, jwt);
 
-        return ResponseEntity.status(HttpStatus.OK).body(response);
+        return ResponseEntity.status(HttpStatus.OK).body(
+                ApiResponse.success(HttpStatus.OK.value(), response));
     }
 
     @PreAuthorize("hasAuthority('ROLE_USER')")
@@ -44,6 +50,19 @@ public class AccountController {
     public ResponseEntity<?> getUserAccounts(@RequestAttribute("userId") String userId) {
         GetUserAccountsResponse response = accountService.getUserAccounts(userId);
 
-        return ResponseEntity.status(HttpStatus.OK).body(response);
+        return ResponseEntity.status(HttpStatus.OK).body(
+                ApiResponse.success(HttpStatus.OK.value(), response)
+        );
+    }
+
+    @PreAuthorize("hasAuthority('ROLE_USER')")
+    @PostMapping("/debit")
+    public ResponseEntity<?> reserveFunds(@RequestBody ReserveFundsRequest request,
+                                          @RequestAttribute("userId") String userId) {
+        ReserveFundsResponse response = accountService.reserveFunds(request, userId);
+
+        return ResponseEntity.status(HttpStatus.OK).body(
+                ApiResponse.success(HttpStatus.OK.value(), response)
+        );
     }
 }

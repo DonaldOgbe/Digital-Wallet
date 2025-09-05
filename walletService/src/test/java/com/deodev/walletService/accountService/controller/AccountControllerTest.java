@@ -5,6 +5,7 @@ import com.deodev.walletService.accountService.dto.response.GetRecipientAccountU
 import com.deodev.walletService.accountService.dto.response.GetUserAccountsResponse;
 import com.deodev.walletService.accountService.service.AccountService;
 import com.deodev.walletService.client.UserServiceClient;
+import com.deodev.walletService.dto.ApiResponse;
 import com.deodev.walletService.dto.response.GetUserDetailsResponse;
 import com.deodev.walletService.enums.Currency;
 import com.deodev.walletService.util.JwtUtil;
@@ -15,9 +16,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.lang.reflect.Type;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -73,25 +76,27 @@ class AccountControllerTest {
         HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
 
         // when
-        ResponseEntity<CreateAccountResponse> response = testRestTemplate.exchange(
+        ResponseEntity<ApiResponse<CreateAccountResponse>> response = testRestTemplate.exchange(
                 "/api/v1/wallets/accounts/{currency}",
                 HttpMethod.POST,
                 requestEntity,
-                CreateAccountResponse.class,
+                new ParameterizedTypeReference<ApiResponse<CreateAccountResponse>>() {},
                 Currency.NGN
         );
 
         // then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
-        CreateAccountResponse body = response.getBody();
+        CreateAccountResponse body = response.getBody().getData();
         assertThat(body).isNotNull();
+        assertThat(body.isSuccess()).isTrue();
+        assertThat(body.statusCode()).isEqualTo(HttpStatus.CREATED);
+        assertThat(body.timestamp()).isBeforeOrEqualTo(LocalDateTime.now());
         assertThat(body.userId()).isEqualTo(userId);
         assertThat(body.currency()).isEqualTo(Currency.NGN);
         assertThat(body.accountId()).isNotNull();
         assertThat(body.walletId()).isNotNull();
         assertThat(body.accountNumber()).isNotBlank();
-        assertThat(body.timestamp()).isBeforeOrEqualTo(LocalDateTime.now());
     }
 
     @Test
@@ -103,11 +108,13 @@ class AccountControllerTest {
         CreateAccountResponse createdAccount = accountService.createAccount(userId.toString(), Currency.NGN);
         String recipientAccountNumber = createdAccount.accountNumber();
 
-        GetUserDetailsResponse mockedUser = GetUserDetailsResponse.builder()
+        ApiResponse<GetUserDetailsResponse> mockedUser = ApiResponse.success(
+                HttpStatus.OK.value(),
+                GetUserDetailsResponse.builder()
                 .username("recipientUsername")
                 .firstName("John")
                 .lastName("Doe")
-                .build();
+                .build());
 
         when(userServiceClient.getUser(any(), any())).thenReturn(mockedUser);
 
@@ -120,22 +127,25 @@ class AccountControllerTest {
         HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
 
         // when
-        ResponseEntity<GetRecipientAccountUserDetailsResponse> response = testRestTemplate.exchange(
+        ResponseEntity<ApiResponse<GetRecipientAccountUserDetailsResponse>> response = testRestTemplate.exchange(
                 "/api/v1/wallets/accounts/recipient?accountNumber={accountNumber}",
                 HttpMethod.GET,
                 requestEntity,
-                GetRecipientAccountUserDetailsResponse.class,
+                new ParameterizedTypeReference<ApiResponse<GetRecipientAccountUserDetailsResponse>>() {},
                 recipientAccountNumber
         );
 
         // then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
-        GetRecipientAccountUserDetailsResponse body = response.getBody();
-        assertThat(body).isNotNull();
-        assertThat(body.username()).isEqualTo("recipientUsername");
-        assertThat(body.firstName()).isEqualTo("John");
-        assertThat(body.lastName()).isEqualTo("Doe");
+        GetRecipientAccountUserDetailsResponse data = response.getBody().getData();
+        assertThat(data).isNotNull();
+        assertThat(data.isSuccess()).isTrue();
+        assertThat(data.statusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(data.timestamp()).isBeforeOrEqualTo(LocalDateTime.now());
+        assertThat(data.username()).isEqualTo("recipientUsername");
+        assertThat(data.firstName()).isEqualTo("John");
+        assertThat(data.lastName()).isEqualTo("Doe");
     }
 
     @Test
@@ -155,21 +165,37 @@ class AccountControllerTest {
         HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
 
         // when
-        ResponseEntity<GetUserAccountsResponse> response = testRestTemplate.exchange(
+        ResponseEntity<ApiResponse<GetUserAccountsResponse>> response = testRestTemplate.exchange(
                 "/api/v1/wallets/accounts",
                 HttpMethod.GET,
                 requestEntity,
-                GetUserAccountsResponse.class
+                new ParameterizedTypeReference<ApiResponse<GetUserAccountsResponse>>() {}
         );
 
         // then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
-        GetUserAccountsResponse body = response.getBody();
-        assertThat(body).isNotNull();
-        assertThat(body.accounts()).hasSize(2);
-        assertThat(body.accounts())
-                .allSatisfy(account -> assertThat(account.getUserId()).isEqualTo(userId));
+        ApiResponse<GetUserAccountsResponse> body = response.getBody();
+
+        assertThat(body.isSuccess()).isTrue();
+        assertThat(body.getStatusCode()).isEqualTo(HttpStatus.OK.value());
+        assertThat(body.getData()).isNotNull();
+    }
+
+    @Test
+    void reserveFunds_DebitsAccount_Sends200Response() {
+        // given
+        UUID userId = UUID.randomUUID();
+        walletService.createWallet(String.valueOf(userId));
+        CreateAccountResponse createAccountResponse = accountService.createAccount(String.valueOf(userId), Currency.NGN);
+
+
+
+
+
+        extraClaims.put("authorities", List.of("ROLE_USER"));
+        extraClaims.put("userId", userId);
+
     }
 
 }

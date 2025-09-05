@@ -128,7 +128,7 @@ class WalletPinServiceControllerTest {
 
         // then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
-        assertThat(response.getBody().error()).isEqualTo("Authorization Error");
+        assertThat(response.getBody().errorCode()).isEqualTo("Authorization Error");
     }
 
     @Test
@@ -213,7 +213,7 @@ class WalletPinServiceControllerTest {
 
         // then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
-        assertThat(response.getBody().error()).isEqualTo("Authorization Error");
+        assertThat(response.getBody().errorCode()).isEqualTo("Authorization Error");
     }
 
     @Test

@@ -13,7 +13,7 @@ import org.springframework.http.*;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.util.*;
-import static org.junit.jupiter.api.Assertions.*;
+
 import static org.assertj.core.api.Assertions.*;
 
 
@@ -94,6 +94,6 @@ class WalletControllerTest {
 
         // then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
-        assertThat(body.error()).isEqualTo("Authorization Error");
+        assertThat(body.errorCode()).isEqualTo("Authorization Error");
     }
 }

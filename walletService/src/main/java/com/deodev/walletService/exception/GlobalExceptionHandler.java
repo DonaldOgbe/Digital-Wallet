@@ -1,7 +1,10 @@
 package com.deodev.walletService.exception;
+
 import com.deodev.walletService.dto.ApiResponse;
 import com.deodev.walletService.dto.ErrorResponse;
+import com.deodev.walletService.enums.ErrorCode;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -14,7 +17,6 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.stream.Collectors;
-
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -36,7 +38,7 @@ public class GlobalExceptionHandler {
         return handleResponse(
                 LocalDateTime.now(),
                 HttpStatus.BAD_REQUEST,
-                "Validation Error",
+                ErrorCode.INVALID_REQUEST,
                 errors,
                 request.getRequestURI()
         );
@@ -44,23 +46,23 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<?> handleAuthorizationDeniedExceptions(AccessDeniedException e, HttpServletRequest request) {
+        logger.error("Access Denied", e);
         return handleResponse(
                 LocalDateTime.now(),
                 HttpStatus.FORBIDDEN,
-                "Authorization Error",
+                ErrorCode.UNAUTHORIZED,
                 "Access Denied",
                 request.getRequestURI()
         );
     }
 
-
     @ExceptionHandler(TokenValidationException.class)
     public ResponseEntity<?> handleTokenValidationExceptions(TokenValidationException e, HttpServletRequest request) {
-
+        logger.error(e.getMessage(), e);
         return handleResponse(
                 LocalDateTime.now(),
                 HttpStatus.UNAUTHORIZED,
-                "Token Validation Error",
+                ErrorCode.INVALID_TOKEN,
                 e.getMessage(),
                 request.getRequestURI()
         );
@@ -68,26 +70,39 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(PinMismatchException.class)
     public ResponseEntity<?> handlePinMismatchException(PinMismatchException e, HttpServletRequest request) {
+        logger.error(e.getMessage(), e);
         return handleResponse(
                 LocalDateTime.now(),
                 HttpStatus.BAD_REQUEST,
-                "PIN Mismatch Error",
+                ErrorCode.PIN_MISMATCH,
                 e.getMessage(),
                 request.getRequestURI()
         );
     }
 
     @ExceptionHandler(ExternalServiceException.class)
-    public ResponseEntity<?> handleExternalServiceException(ExternalServiceException ex, HttpServletRequest request) {
+    public ResponseEntity<?> handleExternalServiceException(ExternalServiceException e, HttpServletRequest request) {
+        logger.error(e.getMessage(), e);
         return handleResponse(
                 LocalDateTime.now(),
                 HttpStatus.FAILED_DEPENDENCY,
-                "External Service Error",
-                ex.getMessage(),
+                ErrorCode.EXTERNAL_SERVICE_ERROR,
+                e.getMessage(),
                 request.getRequestURI()
         );
     }
 
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<?> handleResourceNotFoundException(ResourceNotFoundException e, HttpServletRequest request) {
+        logger.error(e.getMessage(), e);
+        return handleResponse(
+                LocalDateTime.now(),
+                HttpStatus.NOT_FOUND,
+                ErrorCode.NOT_FOUND,
+                e.getMessage(),
+                request.getRequestURI()
+        );
+    }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<?> handleExceptions(Exception e, HttpServletRequest request) {
@@ -96,27 +111,30 @@ public class GlobalExceptionHandler {
         return handleResponse(
                 LocalDateTime.now(),
                 HttpStatus.BAD_REQUEST,
-                "Global Error",
+                ErrorCode.SYSTEM_ERROR,
                 e.getMessage(),
                 request.getRequestURI()
         );
     }
 
-    private ResponseEntity<ErrorResponse> handleResponse(
+    private ResponseEntity<ApiResponse<ErrorResponse>> handleResponse(
             LocalDateTime timestamp,
-            HttpStatus status,
-            String error,
+            HttpStatus statusCode,
+            ErrorCode errorCode,
             String message,
             String path
     ) {
-        return ResponseEntity
-                .status(status)
-                .body(ErrorResponse.builder()
+        return ResponseEntity.status(statusCode).body(ApiResponse.<ErrorResponse>builder()
+                .success(false)
+                .statusCode(statusCode.value())
+                .errorCode(errorCode)
+                .data(ErrorResponse.builder()
                         .timestamp(timestamp)
-                        .status(status)
-                        .error(error)
+                        .statusCode(statusCode)
+                        .errorCode(errorCode)
                         .message(message)
                         .path(path)
-                        .build());
+                        .build())
+                .build());
     }
 }

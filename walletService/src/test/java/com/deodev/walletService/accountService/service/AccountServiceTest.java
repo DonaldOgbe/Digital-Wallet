@@ -8,10 +8,14 @@ import com.deodev.walletService.accountService.dto.response.request.ReserveFunds
 import com.deodev.walletService.accountService.model.Account;
 import com.deodev.walletService.accountService.repository.AccountRepository;
 import com.deodev.walletService.client.UserServiceClient;
+import com.deodev.walletService.dto.ApiResponse;
 import com.deodev.walletService.dto.response.GetUserDetailsResponse;
 import com.deodev.walletService.enums.Currency;
+import com.deodev.walletService.enums.ErrorCode;
 import com.deodev.walletService.exception.DuplicateAccountNumberException;
 import com.deodev.walletService.exception.ExternalServiceException;
+import com.deodev.walletService.exception.InsufficientBalanceException;
+import com.deodev.walletService.exception.ResourceNotFoundException;
 import com.deodev.walletService.walletService.model.Wallet;
 import com.deodev.walletService.walletService.repository.WalletRepository;
 import feign.FeignException;
@@ -21,6 +25,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpStatus;
+
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -45,221 +52,250 @@ class AccountServiceTest {
     @Mock
     private UserServiceClient userServiceClient;
 
-    @Test
-    void createAccountAndSendResponse() {
-        // given
-        UUID userId = UUID.randomUUID();
-        Currency currency = Currency.NGN;
+    @Nested
+    class createAccount {
+        @Test
+        void createAccount_ReturnSuccessResponse() {
+            // given
+            UUID userId = UUID.randomUUID();
+            Currency currency = Currency.NGN;
 
-        Wallet wallet = Wallet.builder()
-                .id(UUID.randomUUID())
-                .build();
+            Wallet wallet = Wallet.builder()
+                    .id(UUID.randomUUID())
+                    .build();
 
-        UUID accountId = UUID.randomUUID();
-        String accountNumber = "0123456789";
-
-
-        // when
-        when(walletRepository.findByUserId(userId)).thenReturn(Optional.of(wallet));
-        when(accountRepository.existsByAccountNumber(any())).thenReturn(false);
-        when(accountRepository.save(any())).thenAnswer(
-                invocationOnMock -> {
-                    Account account = invocationOnMock.getArgument(0);
-                    account.setAccountNumber(accountNumber);
-                    account.setId(accountId);
-
-                    return account;
-                }
-        );
-
-        CreateAccountResponse response = accountService.createAccount(String.valueOf(userId), currency);
-
-        // then
-        assertThat(response.userId()).isEqualTo(userId);
-        assertThat(response.currency()).isEqualTo(currency);
-        assertThat(response.accountId()).isEqualTo(accountId);
-        assertThat(response.accountNumber()).isEqualTo(accountNumber);
-        assertThat(response.walletId()).isEqualTo(wallet.getId());
-        assertThat(response.timestamp()).isBeforeOrEqualTo(LocalDateTime.now());
-
-        verify(walletRepository).findByUserId(userId);
-        verify(accountRepository).existsByAccountNumber(any());
-        verify(accountRepository).save(any());
-    }
-
-    @Test
-    void throwErrorForDuplicateAccountNumber() {
-        // given
-        UUID userId = UUID.randomUUID();
-
-        Wallet wallet = Wallet.builder()
-                .id(UUID.randomUUID())
-                .build();
-
-        String accountNumber = "0123456789";
+            UUID accountId = UUID.randomUUID();
+            String accountNumber = "0123456789";
 
 
-        // when
-        when(walletRepository.findByUserId(userId)).thenReturn(Optional.of(wallet));
-        when(accountRepository.existsByAccountNumber(any())).thenReturn(true);
+            // when
+            when(walletRepository.findByUserId(userId)).thenReturn(Optional.of(wallet));
+            when(accountRepository.existsByAccountNumber(any())).thenReturn(false);
+            when(accountRepository.save(any())).thenAnswer(
+                    invocationOnMock -> {
+                        Account account = invocationOnMock.getArgument(0);
+                        account.setAccountNumber(accountNumber);
+                        account.setId(accountId);
+
+                        return account;
+                    }
+            );
+
+            CreateAccountResponse response = accountService.createAccount(String.valueOf(userId), currency);
+
+            // then
+            assertThat(response.isSuccess()).isTrue();
+            assertThat(response.statusCode()).isEqualTo(HttpStatus.CREATED);
+            assertThat(response.userId()).isEqualTo(userId);
+            assertThat(response.currency()).isEqualTo(currency);
+            assertThat(response.accountId()).isEqualTo(accountId);
+            assertThat(response.accountNumber()).isEqualTo(accountNumber);
+            assertThat(response.walletId()).isEqualTo(wallet.getId());
+            assertThat(response.timestamp()).isBeforeOrEqualTo(LocalDateTime.now());
+            verify(accountRepository).save(any());
+        }
+
+        @Test
+        void createAccount_ThrowsResourceNotFound() {
+            // given
+            UUID userId = UUID.randomUUID();
+
+            when(walletRepository.findByUserId(userId)).thenReturn(Optional.empty());
+
+            // when + then
+            assertThrows(ResourceNotFoundException.class, () -> {
+                accountService.createAccount(String.valueOf(userId), Currency.NGN);
+            });
+
+            verify(walletRepository).findByUserId(userId);
+        }
+
+        @Test
+        void createAccount_ThrowsDuplicateAccountNumber_ForExistingAccount() {
+            // given
+            UUID userId = UUID.randomUUID();
+
+            Wallet wallet = Wallet.builder()
+                    .id(UUID.randomUUID())
+                    .build();
+
+            String accountNumber = "0123456789";
 
 
-        // then
-        assertThrows(DuplicateAccountNumberException.class, () -> {
-            accountService.createAccount(String.valueOf(userId), Currency.NGN);
-        });
-
-        verify(walletRepository).findByUserId(userId);
-        verify(accountRepository).existsByAccountNumber(any());
-    }
-
-    @Test
-    void throwErrorForRaceConditionDuplicateAccountNumber() {
-        // given
-        UUID userId = UUID.randomUUID();
-        Currency currency = Currency.NGN;
-
-        Wallet wallet = Wallet.builder()
-                .id(UUID.randomUUID())
-                .build();
-
-        UUID accountId = UUID.randomUUID();
-        String accountNumber = "0123456789";
+            // when
+            when(walletRepository.findByUserId(userId)).thenReturn(Optional.of(wallet));
+            when(accountRepository.existsByAccountNumber(any())).thenReturn(true);
 
 
-        // when
-        when(walletRepository.findByUserId(userId)).thenReturn(Optional.of(wallet));
-        when(accountRepository.existsByAccountNumber(any())).thenReturn(false);
-        when(accountRepository.save(any())).thenThrow(DuplicateAccountNumberException.class);
+            // then
+            assertThrows(DuplicateAccountNumberException.class, () -> {
+                accountService.createAccount(String.valueOf(userId), Currency.NGN);
+            });
 
-        // then
-        assertThrows(DuplicateAccountNumberException.class, () -> {
-            accountService.createAccount(String.valueOf(userId), currency);
-        });
+            verify(walletRepository).findByUserId(userId);
+            verify(accountRepository).existsByAccountNumber(any());
+        }
 
-        verify(walletRepository).findByUserId(userId);
-        verify(accountRepository).existsByAccountNumber(any());
-        verify(accountRepository).save(any());
-    }
+        @Test
+        void createAccount_ThrowsDuplicateAccountNumber_RaceCondition() {
+            // given
+            UUID userId = UUID.randomUUID();
 
-    @Test
-    void getRecipientAccountUserDetailsAndSendResponse() {
-        // given
-        String accountNumber = "0123456789";
-        String jwt = "jwt-token";
+            Wallet wallet = Wallet.builder()
+                    .id(UUID.randomUUID())
+                    .build();
 
-        Account account = Account.builder()
-                .id(UUID.randomUUID())
-                .accountNumber(accountNumber)
-                .userId(UUID.randomUUID())
-                .build();
+            UUID accountId = UUID.randomUUID();
+            String accountNumber = "0123456789";
 
-        GetUserDetailsResponse userDetails = GetUserDetailsResponse.builder()
-                .username("username")
-                .firstName("John")
-                .lastName("Doe")
-                .build();
 
-        when(accountRepository.findByAccountNumber(accountNumber))
-                .thenReturn(Optional.of(account));
+            // when
+            when(walletRepository.findByUserId(userId)).thenReturn(Optional.of(wallet));
+            when(accountRepository.existsByAccountNumber(any())).thenReturn(false);
+            when(accountRepository.save(any())).thenThrow(DuplicateAccountNumberException.class);
 
-        when(userServiceClient.getUser(account.getUserId().toString(), "Bearer " + jwt))
-                .thenReturn(userDetails);
+            // then
+            assertThrows(DuplicateAccountNumberException.class, () -> {
+                accountService.createAccount(String.valueOf(userId), Currency.NGN);
+            });
 
-        // when
-        GetRecipientAccountUserDetailsResponse actualResponse =
-                accountService.findAccountAndUserDetails(accountNumber, jwt);
-
-        // then
-        assertThat(actualResponse.username()).isEqualTo("username");
-        assertThat(actualResponse.firstName()).isEqualTo("John");
-        assertThat(actualResponse.lastName()).isEqualTo("Doe");
-
-        verify(accountRepository).findByAccountNumber(accountNumber);
-        verify(userServiceClient).getUser(account.getUserId().toString(), "Bearer " + jwt);
-    }
-
-    @Test
-    void givenMissingAccount_whenFindAccountAndUserDetails_thenThrowIllegalArgument() {
-        // given
-        String accountNumber = "9999999999";
-        String jwt = "jwt-token";
-        when(accountRepository.findByAccountNumber(accountNumber))
-                .thenReturn(Optional.empty());
-
-        // when + then
-        assertThrows(IllegalArgumentException.class, () -> {
-            accountService.findAccountAndUserDetails(accountNumber, jwt);
-        });
-    }
-
-    @Test
-    void givenFeignClientThrows_whenFindAccountAndUserDetails_thenThrowExternalServiceException() {
-        // given
-        String accountNumber = "0123456789";
-        String jwt = "jwt-token";
-        Account account = Account.builder()
-                .id(UUID.randomUUID())
-                .userId(UUID.randomUUID())
-                .accountNumber(accountNumber)
-                .build();
-
-        when(accountRepository.findByAccountNumber(accountNumber))
-                .thenReturn(Optional.of(account));
-
-        when(userServiceClient.getUser(account.getUserId().toString(),"Bearer " + jwt))
-                .thenThrow(FeignException.class);
-
-        // when + then
-        assertThrows(ExternalServiceException.class, () -> {
-            accountService.findAccountAndUserDetails(accountNumber, jwt);
-        });
-    }
-
-    @Test
-    void getUserAccounts_ReturnsListOfAccounts() {
-        // given
-        UUID userId = UUID.randomUUID();
-        Account account1 = Account.builder()
-                .id(UUID.randomUUID())
-                .balance(10000L)
-                .accountNumber("1234567890").build();
-
-        Account account2 = Account.builder()
-                .id(UUID.randomUUID())
-                .balance(10000L)
-                .accountNumber("9876543210").build();
-
-        List<Account> accounts = List.of(account1, account2);
-
-        when(accountRepository.findByUserId(userId)).thenReturn(Optional.of(accounts));
-
-        // when
-        GetUserAccountsResponse response = accountService.getUserAccounts(userId.toString());
-
-        // then
-        assertThat(response).isNotNull();
-        assertThat(response.accounts()).hasSize(2);
-
-        verify(accountRepository).findByUserId(any());
-    }
-
-    @Test
-    void getUserAccounts_Throws_Error_For_Missing_Account() {
-        // given
-        UUID userId = UUID.randomUUID();
-
-        when(accountRepository.findByUserId(userId)).thenReturn(Optional.empty());
-
-        // when + then
-        assertThrows(IllegalArgumentException.class, () -> {
-            accountService.getUserAccounts(userId.toString());
-        });
+            verify(walletRepository).findByUserId(userId);
+            verify(accountRepository).existsByAccountNumber(any());
+            verify(accountRepository).save(any());
+        }
     }
 
     @Nested
-    class reserveFunds {
+    class findRecipientAccountUserDetails {
+        @Test
+        void findRecipientAccountUserDetails_ReturnSuccessResponse() {
+            // given
+            String accountNumber = "0123456789";
+            String jwt = "jwt-token";
 
+            Account account = Account.builder()
+                    .id(UUID.randomUUID())
+                    .accountNumber(accountNumber)
+                    .userId(UUID.randomUUID())
+                    .build();
+
+            ApiResponse<GetUserDetailsResponse> userDetails = ApiResponse.success(
+                    HttpStatus.OK.value(),
+                    GetUserDetailsResponse.builder()
+                            .username("username")
+                            .firstName("John")
+                            .lastName("Doe")
+                            .build());
+
+            when(accountRepository.findByAccountNumber(accountNumber))
+                    .thenReturn(Optional.of(account));
+
+            when(userServiceClient.getUser(account.getUserId().toString(), "Bearer " + jwt))
+                    .thenReturn(userDetails);
+
+            // when
+            GetRecipientAccountUserDetailsResponse response =
+                    accountService.findAccountAndUserDetails(accountNumber, jwt);
+
+            // then
+            assertThat(response.isSuccess()).isTrue();
+            assertThat(response.statusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(response.timestamp()).isBeforeOrEqualTo(LocalDateTime.now());
+            assertThat(response.username()).isEqualTo("username");
+            assertThat(response.firstName()).isEqualTo("John");
+            assertThat(response.lastName()).isEqualTo("Doe");
+
+            verify(accountRepository).findByAccountNumber(accountNumber);
+            verify(userServiceClient).getUser(account.getUserId().toString(), "Bearer " + jwt);
+        }
+
+        @Test
+        void findRecipientAccountUserDetails_ThrowsResourceNotFound() {
+            // given
+            String accountNumber = "9999999999";
+            String jwt = "jwt-token";
+            when(accountRepository.findByAccountNumber(accountNumber))
+                    .thenReturn(Optional.empty());
+
+            // when + then
+            assertThrows(ResourceNotFoundException.class, () -> {
+                accountService.findAccountAndUserDetails(accountNumber, jwt);
+            });
+        }
+
+        @Test
+        void findRecipientAccountUserDetails_ThrowsExternalServiceException() {
+            // given
+            String accountNumber = "0123456789";
+            String jwt = "jwt-token";
+            Account account = Account.builder()
+                    .id(UUID.randomUUID())
+                    .userId(UUID.randomUUID())
+                    .accountNumber(accountNumber)
+                    .build();
+
+            when(accountRepository.findByAccountNumber(accountNumber))
+                    .thenReturn(Optional.of(account));
+
+            when(userServiceClient.getUser(account.getUserId().toString(),"Bearer " + jwt))
+                    .thenThrow(ExternalServiceException.class);
+
+            // when + then
+            assertThrows(ExternalServiceException.class, () -> {
+                accountService.findAccountAndUserDetails(accountNumber, jwt);
+            });
+        }
+    }
+
+    @Nested
+    class getUserAccounts {
+        @Test
+        void getUserAccounts_ReturnsListOfAccounts() {
+            // given
+            UUID userId = UUID.randomUUID();
+            Account account1 = Account.builder()
+                    .id(UUID.randomUUID())
+                    .balance(10000L)
+                    .accountNumber("1234567890").build();
+
+            Account account2 = Account.builder()
+                    .id(UUID.randomUUID())
+                    .balance(10000L)
+                    .accountNumber("9876543210").build();
+
+            List<Account> accounts = List.of(account1, account2);
+
+            when(accountRepository.findByUserId(userId)).thenReturn(Optional.of(accounts));
+
+            // when
+            GetUserAccountsResponse response = accountService.getUserAccounts(userId.toString());
+
+            // then
+            assertThat(response).isNotNull();
+            assertThat(response.isSuccess()).isTrue();
+            assertThat(response.statusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(response.accounts()).hasSize(2);
+
+            verify(accountRepository).findByUserId(any());
+        }
+
+        @Test
+        void getUserAccounts_ThrowsResourceNotFound() {
+            // given
+            UUID userId = UUID.randomUUID();
+
+            when(accountRepository.findByUserId(userId)).thenReturn(Optional.empty());
+
+            // when + then
+            assertThrows(ResourceNotFoundException.class, () -> {
+                accountService.getUserAccounts(userId.toString());
+            });
+        }
+    }
+
+
+    @Nested
+    class reserveFunds {
         @Test
         void reserveFunds_ReturnsSuccess() {
             // given
@@ -284,6 +320,8 @@ class AccountServiceTest {
 
             // then
             assertThat(response.isSuccess()).isTrue();
+            assertThat(response.status()).isEqualTo(HttpStatus.OK);
+            assertThat(response.timestamp()).isBeforeOrEqualTo(LocalDateTime.now());
             verify(accountRepository).save(any());
         }
 
@@ -307,16 +345,16 @@ class AccountServiceTest {
             when(accountRepository.findByUserIdAndAccountNumber(userId, accountNumber))
                     .thenReturn(Optional.of(account));
 
-            // when
-            ReserveFundsResponse response = accountService.reserveFunds(request, String.valueOf(userId));
+            // when + then
+            assertThrows(InsufficientBalanceException.class, () -> {
+                accountService.reserveFunds(request, String.valueOf(userId));
+            });
 
-            // then
-            assertThat(response.isSuccess()).isFalse();
-            assertThat(response.errorCode()).isEqualTo("INSUFFICIENT_FUNDS");
+            verify(accountRepository).findByUserIdAndAccountNumber(userId, accountNumber);
         }
 
         @Test
-        void reserveFunds_AccountNotFound() {
+        void reserveFunds_ThrowsResourceNotFound() {
             // given
             UUID userId = UUID.randomUUID();
             String accountNumber = "0123456789";
@@ -329,34 +367,12 @@ class AccountServiceTest {
             when(accountRepository.findByUserIdAndAccountNumber(userId, accountNumber))
                     .thenReturn(Optional.empty());
 
-            // when
-            ReserveFundsResponse response = accountService.reserveFunds(request, String.valueOf(userId));
+            // when + then
+            assertThrows(ResourceNotFoundException.class, () -> {
+                accountService.reserveFunds(request, String.valueOf(userId));
+            });
 
-            // then
-            assertThat(response.isSuccess()).isFalse();
-            assertThat(response.errorCode()).isEqualTo("NOT_FOUND");
-        }
-
-        @Test
-        void reserveFunds_UnexpectedError() {
-            // given
-            UUID userId = UUID.randomUUID();
-            String accountNumber = "0123456789";
-
-            ReserveFundsRequest request = ReserveFundsRequest.builder()
-                    .accountNumber(accountNumber)
-                    .amount(1000L)
-                    .build();
-
-            when(accountRepository.findByUserIdAndAccountNumber(userId, accountNumber))
-                    .thenThrow(new RuntimeException("DB down"));
-
-            // when
-            ReserveFundsResponse response = accountService.reserveFunds(request, String.valueOf(userId));
-
-            // then
-            assertThat(response.isSuccess()).isFalse();
-            assertThat(response.errorCode()).isEqualTo("SYSTEM_ERROR");
+            verify(accountRepository).findByUserIdAndAccountNumber(userId, accountNumber);
         }
     }
 

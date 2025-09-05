@@ -1,5 +1,6 @@
 package com.deodev.walletService.client;
 
+import com.deodev.walletService.dto.ApiResponse;
 import com.deodev.walletService.dto.response.GetUserDetailsResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -50,11 +51,14 @@ class UserServiceClientTest {
         // given
         String userId = UUID.randomUUID().toString();
 
-        GetUserDetailsResponse expectedResponse = GetUserDetailsResponse.builder()
-                .username("username")
-                .firstName("user")
-                .lastName("name")
-                .email("user@gmail.com")
+        ApiResponse<GetUserDetailsResponse> expectedResponse = ApiResponse.<GetUserDetailsResponse>builder()
+                .statusCode(HttpStatus.OK.value())
+                .data(GetUserDetailsResponse.builder()
+                        .username("username")
+                        .firstName("user")
+                        .lastName("name")
+                        .email("user@gmail.com")
+                        .build())
                 .build();
 
         // when
@@ -63,7 +67,7 @@ class UserServiceClientTest {
                 .setHeader("Content-Type", "application/json")
                 .setBody(mapper.writeValueAsString(expectedResponse)));
 
-        GetUserDetailsResponse actualResponse = userServiceClient.getUser(userId, "Bearer fake-token");
+        ApiResponse<GetUserDetailsResponse> actualResponse = userServiceClient.getUser(userId, "Bearer fake-token");
 
         // then
         assertThat(actualResponse).isEqualTo(expectedResponse);
