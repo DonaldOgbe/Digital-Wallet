@@ -28,7 +28,9 @@ public class WalletPinServiceController {
                                        @RequestAttribute("userId") String userId,
                                        @RequestBody SetPinRequest requestBody) {
         CreateWalletPinResponse response = walletPinService.createPin(requestBody, userId);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+                ApiResponse.success(HttpStatus.CREATED.value(), response)
+        );
     }
 
     @PreAuthorize("hasAuthority('ROLE_USER')")
@@ -37,7 +39,8 @@ public class WalletPinServiceController {
                                        @RequestAttribute("userId") String userId,
                                        @RequestBody UpdatePinRequest requestBody) {
         CreateWalletPinResponse response = walletPinService.updatePin(requestBody, userId);
-        return ResponseEntity.status(HttpStatus.OK).body(response);
+        return ResponseEntity.status(HttpStatus.OK).body(
+                ApiResponse.success(HttpStatus.OK.value(), response));
     }
 
     @PreAuthorize("hasAuthority('ROLE_USER')")

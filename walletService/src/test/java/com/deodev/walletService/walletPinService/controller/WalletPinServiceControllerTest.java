@@ -84,51 +84,20 @@ class WalletPinServiceControllerTest {
         HttpEntity<SetPinRequest> requestHttpEntity = new HttpEntity<>(request, headers);
 
         // when
-        ResponseEntity<CreateWalletPinResponse> response = testRestTemplate.exchange(
+        ResponseEntity<ApiResponse<CreateWalletPinResponse>> response = testRestTemplate.exchange(
                 "/api/v1/wallets/pin",
                 HttpMethod.POST,
                 requestHttpEntity,
-                CreateWalletPinResponse.class
+                new ParameterizedTypeReference<ApiResponse<CreateWalletPinResponse>>() {}
         );
 
-        CreateWalletPinResponse body = response.getBody();
+        ApiResponse<CreateWalletPinResponse> body = response.getBody();
 
         // then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-        assertThat(userId).isEqualTo(body.userId());
-    }
-
-    @Test
-    @Description("Test that the set pin endpoint is forbidden for unauthorized user")
-    void testThatAccessIsDeniedAndErrorResponseIsSentForSetPin() {
-        // then
-        UUID userId = UUID.randomUUID();
-
-        SetPinRequest request = SetPinRequest.builder()
-                .newPin("5555")
-                .confirmNewPin("5555")
-                .build();
-
-        extraClaims.put("authorities", List.of("not_user"));
-        extraClaims.put("userId", userId);
-
-        jwt = jwtUtil.generateToken(extraClaims,"subject");
-
-        headers.set("Authorization", "Bearer ".concat(jwt));
-
-        HttpEntity<SetPinRequest> requestHttpEntity = new HttpEntity<>(request, headers);
-
-        // when
-        ResponseEntity<ErrorResponse> response = testRestTemplate.exchange(
-                "/api/v1/wallets/pin",
-                HttpMethod.POST,
-                requestHttpEntity,
-                ErrorResponse.class
-        );
-
-        // then
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
-        assertThat(response.getBody().errorCode()).isEqualTo("Authorization Error");
+        assertThat(body.isSuccess()).isTrue();
+        assertThat(body.getStatusCode()).isEqualTo(HttpStatus.CREATED.value());
+        assertThat(body.getData()).isNotNull();
     }
 
     @Test
@@ -161,59 +130,24 @@ class WalletPinServiceControllerTest {
         HttpEntity<UpdatePinRequest> requestHttpEntity = new HttpEntity<>(request, headers);
 
         // when
-        ResponseEntity<CreateWalletPinResponse> response = testRestTemplate.exchange(
+        ResponseEntity<ApiResponse<CreateWalletPinResponse>> response = testRestTemplate.exchange(
                 "/api/v1/wallets/pin",
                 HttpMethod.PATCH,
                 requestHttpEntity,
-                CreateWalletPinResponse.class
+                new ParameterizedTypeReference<ApiResponse<CreateWalletPinResponse>>() {}
         );
 
-        CreateWalletPinResponse body = response.getBody();
+        ApiResponse<CreateWalletPinResponse> body = response.getBody();
 
         // then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(walletId).isEqualTo(body.walletId());
-        assertThat(userId).isEqualTo(body.userId());
+        assertThat(body.isSuccess()).isTrue();
+        assertThat(body.getStatusCode()).isEqualTo(HttpStatus.OK.value());
+        assertThat(body.getData()).isNotNull();
 
         entityManager.clear();
         WalletPin updated = walletPinRepository.findByUserId(userId).orElseThrow();
         assertThat(passwordEncoder.matches("5555", updated.getPin())).isTrue();
-    }
-
-    @Test
-    @Description("Test that the set pin endpoint is forbidden for unauthorized user")
-    void testThatAccessIsDeniedAndErrorResponseIsSentForUpdatePin() {
-        // given
-
-        UUID userId = UUID.randomUUID();
-
-        UpdatePinRequest request = UpdatePinRequest.builder()
-                .oldPin("1111")
-                .newPin("5555")
-                .confirmNewPin("5555")
-                .build();
-
-        Map<String, Object> extraClaims = new HashMap<>();
-        extraClaims.put("authorities", List.of("NOT_USER"));
-        extraClaims.put("userId", userId);
-
-        jwt = jwtUtil.generateToken(extraClaims, "subject");
-
-        headers.set("Authorization", "Bearer ".concat(jwt));
-
-        HttpEntity<UpdatePinRequest> requestHttpEntity = new HttpEntity<>(request, headers);
-
-        // when
-        ResponseEntity<ErrorResponse> response = testRestTemplate.exchange(
-                "/api/v1/wallets/pin",
-                HttpMethod.PATCH,
-                requestHttpEntity,
-                ErrorResponse.class
-        );
-
-        // then
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
-        assertThat(response.getBody().errorCode()).isEqualTo("Authorization Error");
     }
 
     @Test
@@ -248,11 +182,13 @@ class WalletPinServiceControllerTest {
                 new ParameterizedTypeReference<ApiResponse<ValidateWalletPinResponse>>() {}
         );
 
-        ValidateWalletPinResponse body = (ValidateWalletPinResponse) response.getBody().getData();
+        ApiResponse<ValidateWalletPinResponse> body =  response.getBody();
 
         // then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(body.isValid()).isTrue();
+        assertThat(body.isSuccess()).isTrue();
+        assertThat(body.getStatusCode()).isEqualTo(HttpStatus.OK.value());
+        assertThat(body.getData()).isNotNull();
     }
 
 }

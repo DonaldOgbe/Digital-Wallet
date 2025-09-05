@@ -1,6 +1,7 @@
 package com.deodev.walletService.walletPinService.service;
 
 import com.deodev.walletService.exception.PinMismatchException;
+import com.deodev.walletService.exception.ResourceNotFoundException;
 import com.deodev.walletService.walletPinService.dto.request.SetPinRequest;
 import com.deodev.walletService.walletPinService.dto.request.UpdatePinRequest;
 import com.deodev.walletService.walletPinService.dto.response.CreateWalletPinResponse;
@@ -11,6 +12,7 @@ import com.deodev.walletService.walletService.model.Wallet;
 import com.deodev.walletService.walletService.repository.WalletRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -33,11 +35,11 @@ public class WalletPinService {
     public CreateWalletPinResponse createPin(SetPinRequest request, String userId) {
         pinsMatch(request.newPin(), request.confirmNewPin());
 
-        String hashedPin = passwordEncoder.encode(request.newPin());
-
         Wallet wallet = walletRepository.findByUserId(UUID.fromString(userId)).orElseThrow(
-                () -> new IllegalArgumentException("Wallet not found for userId: %s".formatted(userId))
+                () -> new ResourceNotFoundException("Wallet not found for userId: %s".formatted(userId))
         );
+
+        String hashedPin = passwordEncoder.encode(request.newPin());
 
         WalletPin walletPin = WalletPin.builder()
                 .walletId(wallet.getId())
@@ -48,21 +50,23 @@ public class WalletPinService {
         WalletPin savedPin = walletPinRepository.save(walletPin);
 
         return CreateWalletPinResponse.builder()
+                .isSuccess(true)
+                .statusCode(HttpStatus.CREATED)
+                .timestamp(LocalDateTime.now())
                 .walletId(savedPin.getWalletId())
                 .userId(savedPin.getUserId())
                 .walletPinId(savedPin.getId())
-                .timestamp(LocalDateTime.now())
                 .build();
     }
 
     public CreateWalletPinResponse updatePin(UpdatePinRequest request, String userId) {
 
         WalletPin walletPin = walletPinRepository.findByUserId(UUID.fromString(userId)).orElseThrow(
-                () -> new IllegalArgumentException("WalletPin not found for userId: %s".formatted(userId))
+                () -> new ResourceNotFoundException("WalletPin not found for userId: %s".formatted(userId))
         );
 
         if (!passwordEncoder.matches(request.oldPin(), walletPin.getPin())) {
-            throw new IllegalArgumentException("Incorrect Old Pin");
+            throw new PinMismatchException("Incorrect Old Pin");
         }
 
         pinsMatch(request.newPin(), request.confirmNewPin());
@@ -73,17 +77,18 @@ public class WalletPinService {
         walletPinRepository.save(walletPin);
 
         return CreateWalletPinResponse.builder()
+                .isSuccess(true)
+                .statusCode(HttpStatus.OK)
+                .timestamp(LocalDateTime.now())
                 .walletId(walletPin.getWalletId())
                 .userId(walletPin.getUserId())
                 .walletPinId(walletPin.getId())
-                .timestamp(LocalDateTime.now())
                 .build();
     }
 
     public ValidateWalletPinResponse validatePin(String userId, String pin) {
-        try {
             WalletPin walletPin = walletPinRepository.findByUserId(UUID.fromString(userId))
-                    .orElseThrow(() -> new IllegalArgumentException("WalletPin not found for userId: %s".formatted(userId)));
+                    .orElseThrow(() -> new ResourceNotFoundException("WalletPin not found for userId: %s".formatted(userId)));
 
 
             if (!passwordEncoder.matches(pin, walletPin.getPin())) {
@@ -92,26 +97,9 @@ public class WalletPinService {
 
             return ValidateWalletPinResponse.builder()
                     .isValid(true)
+                    .statusCode(HttpStatus.OK)
+                    .timestamp(LocalDateTime.now())
                     .build();
-        } catch (IllegalArgumentException e) {
-            log.error(e.getMessage(), e);
-            return ValidateWalletPinResponse.builder()
-                    .isValid(false)
-                    .errorCode(NOT_FOUND)
-                    .build();
-        } catch (PinMismatchException e) {
-            log.error(e.getMessage(), e);
-            return ValidateWalletPinResponse.builder()
-                    .isValid(false)
-                    .errorCode(INVALID_PIN)
-                    .build();
-        } catch (Exception e) {
-            log.error(e.getMessage(), e);
-            return ValidateWalletPinResponse.builder()
-                    .isValid(false)
-                    .errorCode(SYSTEM_ERROR)
-                    .build();
-        }
     }
 
     protected void pinsMatch(String pin1, String pin2) throws PinMismatchException {
