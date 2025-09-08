@@ -4,28 +4,27 @@ import com.deodev.walletService.accountService.dto.response.CreateAccountRespons
 import com.deodev.walletService.accountService.dto.response.GetRecipientAccountUserDetailsResponse;
 import com.deodev.walletService.accountService.dto.response.GetUserAccountsResponse;
 import com.deodev.walletService.accountService.dto.response.ReserveFundsResponse;
-import com.deodev.walletService.accountService.dto.response.request.ReserveFundsRequest;
+import com.deodev.walletService.accountService.dto.request.ReserveFundsRequest;
 import com.deodev.walletService.accountService.model.Account;
+import com.deodev.walletService.accountService.model.FundReservation;
 import com.deodev.walletService.accountService.repository.AccountRepository;
+import com.deodev.walletService.accountService.repository.FundReservationRepository;
 import com.deodev.walletService.client.UserServiceClient;
 import com.deodev.walletService.dto.ApiResponse;
 import com.deodev.walletService.dto.response.GetUserDetailsResponse;
 import com.deodev.walletService.enums.Currency;
-import com.deodev.walletService.enums.ErrorCode;
 import com.deodev.walletService.exception.DuplicateAccountNumberException;
 import com.deodev.walletService.exception.ExternalServiceException;
 import com.deodev.walletService.exception.InsufficientBalanceException;
 import com.deodev.walletService.exception.ResourceNotFoundException;
 import com.deodev.walletService.walletService.model.Wallet;
 import com.deodev.walletService.walletService.repository.WalletRepository;
-import feign.FeignException;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpStatus;
 
 import java.time.LocalDateTime;
@@ -48,6 +47,9 @@ class AccountServiceTest {
 
     @Mock
     private WalletRepository walletRepository;
+
+    @Mock
+    private FundReservationRepository fundReservationRepository;
 
     @Mock
     private UserServiceClient userServiceClient;
@@ -293,16 +295,18 @@ class AccountServiceTest {
         }
     }
 
-
     @Nested
     class reserveFunds {
         @Test
         void reserveFunds_ReturnsSuccess() {
             // given
             UUID userId = UUID.randomUUID();
+            UUID transactionId = UUID.randomUUID();
+            UUID fundReservationId = UUID.randomUUID();
             String accountNumber = "0123456789";
 
             Account account = Account.builder()
+                    .id(UUID.randomUUID())
                     .userId(userId)
                     .accountNumber(accountNumber)
                     .balance(10000L)
@@ -311,18 +315,26 @@ class AccountServiceTest {
             ReserveFundsRequest request = ReserveFundsRequest.builder()
                     .accountNumber(accountNumber)
                     .amount(1000L)
+                    .transactionId(transactionId)
                     .build();
 
             when(accountRepository.findByUserIdAndAccountNumber(userId, accountNumber)).thenReturn(Optional.of(account));
+            when(fundReservationRepository.save(any(FundReservation.class))).thenAnswer(invocationOnMock -> {
+                FundReservation fundReservation = invocationOnMock.getArgument(0);
+                fundReservation.setId(fundReservationId);
+                return  fundReservation;
+            });
 
             // when
             ReserveFundsResponse response = accountService.reserveFunds(request, String.valueOf(userId));
 
             // then
             assertThat(response.isSuccess()).isTrue();
-            assertThat(response.status()).isEqualTo(HttpStatus.OK);
+            assertThat(response.statusCode()).isEqualTo(HttpStatus.OK);
             assertThat(response.timestamp()).isBeforeOrEqualTo(LocalDateTime.now());
-            verify(accountRepository).save(any());
+            assertThat(response.fundReservationId()).isEqualTo(fundReservationId);
+            verify(accountRepository).findByUserIdAndAccountNumber(userId, accountNumber);
+            verify(fundReservationRepository).save(any(FundReservation.class));
         }
 
         @Test
@@ -373,6 +385,16 @@ class AccountServiceTest {
             });
 
             verify(accountRepository).findByUserIdAndAccountNumber(userId, accountNumber);
+        }
+    }
+
+
+
+    @Nested
+    class transferFunds {
+        @Test
+        void transferFunds_ReturnsSuccess() {
+
         }
     }
 

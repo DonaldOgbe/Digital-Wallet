@@ -1,6 +1,7 @@
 package com.deodev.walletService.accountService.repository;
 
 import com.deodev.walletService.accountService.model.Account;
+import com.deodev.walletService.enums.Currency;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
@@ -13,4 +14,5 @@ public interface AccountRepository extends JpaRepository<Account, UUID> {
     Optional<Account> findByAccountNumber(String accountNumber);
     Optional<List<Account>> findByUserId(UUID userId);
     Optional<Account> findByUserIdAndAccountNumber(UUID userId, String accountNumber);
+    Optional<Account> findByAccountNumberAndCurrency(String accountNumber, Currency currency);
 }

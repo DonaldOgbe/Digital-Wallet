@@ -1,8 +1,10 @@
 package com.deodev.walletService.accountService.controller;
 
+import com.deodev.walletService.accountService.dto.request.ReserveFundsRequest;
 import com.deodev.walletService.accountService.dto.response.CreateAccountResponse;
 import com.deodev.walletService.accountService.dto.response.GetRecipientAccountUserDetailsResponse;
 import com.deodev.walletService.accountService.dto.response.GetUserAccountsResponse;
+import com.deodev.walletService.accountService.dto.response.ReserveFundsResponse;
 import com.deodev.walletService.accountService.service.AccountService;
 import com.deodev.walletService.client.UserServiceClient;
 import com.deodev.walletService.dto.ApiResponse;
@@ -80,7 +82,8 @@ class AccountControllerTest {
                 "/api/v1/wallets/accounts/{currency}",
                 HttpMethod.POST,
                 requestEntity,
-                new ParameterizedTypeReference<ApiResponse<CreateAccountResponse>>() {},
+                new ParameterizedTypeReference<ApiResponse<CreateAccountResponse>>() {
+                },
                 Currency.NGN
         );
 
@@ -111,14 +114,13 @@ class AccountControllerTest {
         ApiResponse<GetUserDetailsResponse> mockedUser = ApiResponse.success(
                 HttpStatus.OK.value(),
                 GetUserDetailsResponse.builder()
-                .username("recipientUsername")
-                .firstName("John")
-                .lastName("Doe")
-                .build());
+                        .username("recipientUsername")
+                        .firstName("John")
+                        .lastName("Doe")
+                        .build());
 
         when(userServiceClient.getUser(any(), any())).thenReturn(mockedUser);
 
-        // generate jwt
         extraClaims.put("authorities", List.of("ROLE_USER"));
         extraClaims.put("userId", userId);
         jwt = jwtUtil.generateToken(extraClaims, "subject");
@@ -131,7 +133,8 @@ class AccountControllerTest {
                 "/api/v1/wallets/accounts/recipient?accountNumber={accountNumber}",
                 HttpMethod.GET,
                 requestEntity,
-                new ParameterizedTypeReference<ApiResponse<GetRecipientAccountUserDetailsResponse>>() {},
+                new ParameterizedTypeReference<ApiResponse<GetRecipientAccountUserDetailsResponse>>() {
+                },
                 recipientAccountNumber
         );
 
@@ -169,7 +172,8 @@ class AccountControllerTest {
                 "/api/v1/wallets/accounts",
                 HttpMethod.GET,
                 requestEntity,
-                new ParameterizedTypeReference<ApiResponse<GetUserAccountsResponse>>() {}
+                new ParameterizedTypeReference<ApiResponse<GetUserAccountsResponse>>() {
+                }
         );
 
         // then
@@ -183,19 +187,42 @@ class AccountControllerTest {
     }
 
     @Test
-    void reserveFunds_DebitsAccount_Sends200Response() {
+    void reserveFunds_CreatesFundReservation_Sends200Response() {
         // given
         UUID userId = UUID.randomUUID();
         walletService.createWallet(String.valueOf(userId));
         CreateAccountResponse createAccountResponse = accountService.createAccount(String.valueOf(userId), Currency.NGN);
+        accountService.creditBalance(createAccountResponse.accountNumber(), 100L);
 
-
-
-
+        ReserveFundsRequest request = ReserveFundsRequest.builder()
+                .accountNumber(createAccountResponse.accountNumber())
+                .amount(100L)
+                .transactionId(UUID.randomUUID())
+                .build();
 
         extraClaims.put("authorities", List.of("ROLE_USER"));
         extraClaims.put("userId", userId);
+        String jwt = jwtUtil.generateToken(extraClaims, "subject");
 
+        headers.add("Authorization", "Bearer %s".formatted(jwt));
+
+        HttpEntity<ReserveFundsRequest> requestEntity = new HttpEntity<>(request, headers);
+
+        // when
+        ResponseEntity<ApiResponse<ReserveFundsResponse>> response = testRestTemplate.exchange(
+                "/api/v1/wallets/accounts/funds/reserve",
+                HttpMethod.POST,
+                requestEntity,
+                new ParameterizedTypeReference<ApiResponse<ReserveFundsResponse>>() {}
+        );
+
+        // then
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+        ApiResponse<ReserveFundsResponse> body = response.getBody();
+
+        assertThat(body.isSuccess()).isTrue();
+        assertThat(body.getStatusCode()).isEqualTo(HttpStatus.OK.value());
+        assertThat(body.getData()).isNotNull();
     }
-
 }
