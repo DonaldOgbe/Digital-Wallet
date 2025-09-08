@@ -1,13 +1,12 @@
 package com.deodev.walletService.accountService.controller;
 
-import com.deodev.walletService.accountService.dto.response.CreateAccountResponse;
-import com.deodev.walletService.accountService.dto.response.GetRecipientAccountUserDetailsResponse;
-import com.deodev.walletService.accountService.dto.response.GetUserAccountsResponse;
-import com.deodev.walletService.accountService.dto.response.ReserveFundsResponse;
+import com.deodev.walletService.accountService.dto.request.TransferFundsRequest;
+import com.deodev.walletService.accountService.dto.response.*;
 import com.deodev.walletService.accountService.dto.request.ReserveFundsRequest;
 import com.deodev.walletService.accountService.service.AccountService;
 import com.deodev.walletService.dto.ApiResponse;
 import com.deodev.walletService.enums.Currency;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -56,9 +55,19 @@ public class AccountController {
 
     @PreAuthorize("hasAuthority('ROLE_USER')")
     @PostMapping("/funds/reserve")
-    public ResponseEntity<?> reserveFunds(@RequestBody ReserveFundsRequest request,
+    public ResponseEntity<?> reserveFunds(@Valid @RequestBody ReserveFundsRequest request,
                                           @RequestAttribute("userId") String userId) {
         ReserveFundsResponse response = accountService.reserveFunds(request, userId);
+
+        return ResponseEntity.status(HttpStatus.OK).body(
+                ApiResponse.success(HttpStatus.OK.value(), response)
+        );
+    }
+
+    @PreAuthorize("hasAuthority('ROLE_USER')")
+    @PostMapping("/funds/transfer")
+    public ResponseEntity<?> transferFunds(@Valid  @RequestBody TransferFundsRequest request) {
+        TransferFundsResponse response = accountService.transferFunds(request);
 
         return ResponseEntity.status(HttpStatus.OK).body(
                 ApiResponse.success(HttpStatus.OK.value(), response)

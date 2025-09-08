@@ -1,15 +1,18 @@
 package com.deodev.walletService.accountService.controller;
 
 import com.deodev.walletService.accountService.dto.request.ReserveFundsRequest;
-import com.deodev.walletService.accountService.dto.response.CreateAccountResponse;
-import com.deodev.walletService.accountService.dto.response.GetRecipientAccountUserDetailsResponse;
-import com.deodev.walletService.accountService.dto.response.GetUserAccountsResponse;
-import com.deodev.walletService.accountService.dto.response.ReserveFundsResponse;
+import com.deodev.walletService.accountService.dto.request.TransferFundsRequest;
+import com.deodev.walletService.accountService.dto.response.*;
+import com.deodev.walletService.accountService.model.Account;
+import com.deodev.walletService.accountService.model.FundReservation;
+import com.deodev.walletService.accountService.repository.AccountRepository;
+import com.deodev.walletService.accountService.repository.FundReservationRepository;
 import com.deodev.walletService.accountService.service.AccountService;
 import com.deodev.walletService.client.UserServiceClient;
 import com.deodev.walletService.dto.ApiResponse;
 import com.deodev.walletService.dto.response.GetUserDetailsResponse;
 import com.deodev.walletService.enums.Currency;
+import com.deodev.walletService.enums.FundReservationStatus;
 import com.deodev.walletService.util.JwtUtil;
 import com.deodev.walletService.walletService.service.WalletService;
 import org.junit.jupiter.api.BeforeEach;
@@ -47,6 +50,12 @@ class AccountControllerTest {
 
     @Autowired
     private AccountService accountService;
+
+    @Autowired
+    private FundReservationRepository fundReservationRepository;
+
+    @Autowired
+    private AccountRepository accountRepository;
 
     @MockBean
     private UserServiceClient userServiceClient;
@@ -224,5 +233,71 @@ class AccountControllerTest {
         assertThat(body.isSuccess()).isTrue();
         assertThat(body.getStatusCode()).isEqualTo(HttpStatus.OK.value());
         assertThat(body.getData()).isNotNull();
+    }
+
+    @Test
+    void transferFunds_Sends200Response() {
+        // given
+        UUID senderUserId = UUID.randomUUID();
+        UUID receiverUserId = UUID.randomUUID();
+
+        walletService.createWallet(String.valueOf(senderUserId));
+        walletService.createWallet(String.valueOf(receiverUserId));
+
+        CreateAccountResponse senderAccount = accountService.createAccount(String.valueOf(senderUserId), Currency.NGN);
+        CreateAccountResponse receiverAccount = accountService.createAccount(String.valueOf(receiverUserId), Currency.NGN);
+
+        accountService.creditBalance(senderAccount.accountNumber(), 1000L);
+
+        UUID transactionId = UUID.randomUUID();
+        FundReservation reservation = FundReservation.builder()
+                .accountNumber(senderAccount.accountNumber())
+                .transactionId(transactionId)
+                .amount(200L)
+                .status(FundReservationStatus.ACTIVE)
+                .expiredAt(LocalDateTime.now().plusHours(1))
+                .build();
+        fundReservationRepository.save(reservation);
+
+        TransferFundsRequest request = TransferFundsRequest.builder()
+                .accountNumber(receiverAccount.accountNumber())
+                .currency(Currency.NGN)
+                .amount(200L)
+                .transactionId(transactionId)
+                .build();
+
+        extraClaims.put("authorities", List.of("ROLE_USER"));
+        String jwt = jwtUtil.generateToken(extraClaims, "subject");
+        headers.add("Authorization", "Bearer %s".formatted(jwt));
+
+        HttpEntity<TransferFundsRequest> requestEntity = new HttpEntity<>(request, headers);
+
+        // when
+        ResponseEntity<ApiResponse<TransferFundsResponse>> response = testRestTemplate.exchange(
+                "/api/v1/wallets/accounts/funds/transfer",
+                HttpMethod.POST,
+                requestEntity,
+                new ParameterizedTypeReference<ApiResponse<TransferFundsResponse>>() {}
+        );
+
+        // then
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+        ApiResponse<TransferFundsResponse> body = response.getBody();
+        assertThat(body.isSuccess()).isTrue();
+        assertThat(body.getStatusCode()).isEqualTo(HttpStatus.OK.value());
+        assertThat(body.getData()).isNotNull();
+
+        // Verify balances
+        Account updatedSender = accountRepository.findByAccountNumber(senderAccount.accountNumber()).get();
+        Account updatedReceiver = accountRepository.findByAccountNumber(receiverAccount.accountNumber()).get();
+
+        assertThat(updatedSender.getBalance()).isEqualTo(800L);
+        assertThat(updatedReceiver.getBalance()).isEqualTo(200L);
+
+        // Verify reservation updated
+        FundReservation updatedReservation = fundReservationRepository.findByTransactionId(transactionId).get();
+        assertThat(updatedReservation.getStatus()).isEqualTo(FundReservationStatus.USED);
+        assertThat(updatedReservation.getUsedAt()).isNotNull();
     }
 }
