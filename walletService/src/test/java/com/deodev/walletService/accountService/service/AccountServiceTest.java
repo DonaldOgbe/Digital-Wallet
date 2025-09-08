@@ -1,9 +1,7 @@
 package com.deodev.walletService.accountService.service;
 
-import com.deodev.walletService.accountService.dto.response.CreateAccountResponse;
-import com.deodev.walletService.accountService.dto.response.GetRecipientAccountUserDetailsResponse;
-import com.deodev.walletService.accountService.dto.response.GetUserAccountsResponse;
-import com.deodev.walletService.accountService.dto.response.ReserveFundsResponse;
+import com.deodev.walletService.accountService.dto.request.TransferFundsRequest;
+import com.deodev.walletService.accountService.dto.response.*;
 import com.deodev.walletService.accountService.dto.request.ReserveFundsRequest;
 import com.deodev.walletService.accountService.model.Account;
 import com.deodev.walletService.accountService.model.FundReservation;
@@ -13,12 +11,11 @@ import com.deodev.walletService.client.UserServiceClient;
 import com.deodev.walletService.dto.ApiResponse;
 import com.deodev.walletService.dto.response.GetUserDetailsResponse;
 import com.deodev.walletService.enums.Currency;
-import com.deodev.walletService.exception.DuplicateAccountNumberException;
-import com.deodev.walletService.exception.ExternalServiceException;
-import com.deodev.walletService.exception.InsufficientBalanceException;
-import com.deodev.walletService.exception.ResourceNotFoundException;
+import com.deodev.walletService.enums.FundReservationStatus;
+import com.deodev.walletService.exception.*;
 import com.deodev.walletService.walletService.model.Wallet;
 import com.deodev.walletService.walletService.repository.WalletRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -239,7 +236,7 @@ class AccountServiceTest {
             when(accountRepository.findByAccountNumber(accountNumber))
                     .thenReturn(Optional.of(account));
 
-            when(userServiceClient.getUser(account.getUserId().toString(),"Bearer " + jwt))
+            when(userServiceClient.getUser(account.getUserId().toString(), "Bearer " + jwt))
                     .thenThrow(ExternalServiceException.class);
 
             // when + then
@@ -322,7 +319,7 @@ class AccountServiceTest {
             when(fundReservationRepository.save(any(FundReservation.class))).thenAnswer(invocationOnMock -> {
                 FundReservation fundReservation = invocationOnMock.getArgument(0);
                 fundReservation.setId(fundReservationId);
-                return  fundReservation;
+                return fundReservation;
             });
 
             // when
@@ -388,13 +385,121 @@ class AccountServiceTest {
         }
     }
 
-
-
     @Nested
     class transferFunds {
+        FundReservation reservation;
+        UUID senderId = UUID.randomUUID();
+        UUID receiverId = UUID.randomUUID();
+        UUID transactionId = UUID.randomUUID();
+        UUID reservationId = UUID.randomUUID();
+        String senderAccountNumber = "1111111111";
+        String receiverAccountNumber = "2222222222";
+        TransferFundsRequest request;
+
+        @BeforeEach
+        void setup() {
+            reservation = FundReservation.builder()
+                    .id(reservationId)
+                    .accountNumber(senderAccountNumber)
+                    .transactionId(transactionId)
+                    .amount(200L)
+                    .status(FundReservationStatus.ACTIVE)
+                    .createdAt(LocalDateTime.now())
+                    .expiredAt(LocalDateTime.now().plusHours(1))
+                    .build();
+
+            request = TransferFundsRequest.builder()
+                    .accountNumber(receiverAccountNumber)
+                    .amount(200L)
+                    .currency(Currency.NGN)
+                    .transactionId(transactionId)
+                    .build();
+        }
+
         @Test
         void transferFunds_ReturnsSuccess() {
+            // given
+            Account sender = Account.builder()
+                    .id(senderId)
+                    .walletId(UUID.randomUUID())
+                    .userId(UUID.randomUUID())
+                    .accountNumber(senderAccountNumber)
+                    .currency(Currency.NGN)
+                    .balance(1000L)
+                    .build();
 
+            Account receiver = Account.builder()
+                    .id(receiverId)
+                    .walletId(UUID.randomUUID())
+                    .userId(UUID.randomUUID())
+                    .accountNumber(receiverAccountNumber)
+                    .currency(Currency.NGN)
+                    .balance(1000L)
+                    .build();
+
+            when(fundReservationRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(reservation));
+            when(accountRepository.findByAccountNumber(sender.getAccountNumber()))
+                    .thenReturn(Optional.of(sender));
+            when(accountRepository.findByAccountNumber(receiver.getAccountNumber()))
+                    .thenReturn(Optional.of(receiver));
+
+            // when
+            TransferFundsResponse response = accountService.transferFunds(request);
+
+            // then
+            assertThat(response.isSuccess()).isTrue();
+            assertThat(response.statusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(response.timestamp()).isBeforeOrEqualTo(LocalDateTime.now());
+            assertThat(response.transactionId()).isEqualTo(transactionId);
+            assertThat(response.fundReservationId()).isEqualTo(reservationId);
+
+            verify(fundReservationRepository).findByTransactionId(transactionId);
+            verify(accountRepository).findByAccountNumber(sender.getAccountNumber());
+            verify(accountRepository).findByAccountNumber(receiver.getAccountNumber());
+            verify(fundReservationRepository).save(reservation);
+        }
+
+        @Test
+        void transferFunds_ThrowsResourceNotFound() {
+            // given
+            when(fundReservationRepository.findByTransactionId(transactionId))
+                    .thenReturn(Optional.empty());
+
+            // when + then
+            assertThrows(ResourceNotFoundException.class, () ->
+                    accountService.transferFunds(request));
+
+            verify(fundReservationRepository).findByTransactionId(transactionId);
+        }
+
+        @Test
+        void transferFunds_ThrowsFundReservationException_ForExpiredReservation() {
+            // given
+            reservation.setExpiredAt(LocalDateTime.now().minusMinutes(1));
+
+            when(fundReservationRepository.findByTransactionId(transactionId))
+                    .thenReturn(Optional.of(reservation));
+
+            // when + then
+            assertThrows(FundReservationException.class, () ->
+                    accountService.transferFunds(request));
+
+            verify(fundReservationRepository).findByTransactionId(transactionId);
+        }
+
+        @Test
+        void transferFunds_ThrowsFundReservationException_ForInactiveReservation() {
+            // given
+            reservation.setStatus(FundReservationStatus.USED);
+
+            when(fundReservationRepository.findByTransactionId(transactionId))
+                    .thenReturn(Optional.of(reservation));
+
+            // when + then
+            assertThrows(FundReservationException.class, () ->
+                    accountService.transferFunds(request));
+
+            verify(fundReservationRepository).findByTransactionId(transactionId);
         }
     }
 

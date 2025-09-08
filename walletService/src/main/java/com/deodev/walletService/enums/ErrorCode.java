@@ -12,4 +12,5 @@ public enum ErrorCode {
     PIN_MISMATCH,
     INVALID_TOKEN,
     UNAUTHORIZED,
+    FUND_RESERVATION_ERROR
 }

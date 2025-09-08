@@ -36,7 +36,6 @@ public class GlobalExceptionHandler {
 
         logger.error("Validation Error", e);
         return handleResponse(
-                LocalDateTime.now(),
                 HttpStatus.BAD_REQUEST,
                 ErrorCode.INVALID_REQUEST,
                 errors,
@@ -48,7 +47,6 @@ public class GlobalExceptionHandler {
     public ResponseEntity<?> handleAuthorizationDeniedExceptions(AccessDeniedException e, HttpServletRequest request) {
         logger.error("Access Denied", e);
         return handleResponse(
-                LocalDateTime.now(),
                 HttpStatus.FORBIDDEN,
                 ErrorCode.UNAUTHORIZED,
                 "Access Denied",
@@ -60,7 +58,6 @@ public class GlobalExceptionHandler {
     public ResponseEntity<?> handleTokenValidationExceptions(TokenValidationException e, HttpServletRequest request) {
         logger.error(e.getMessage(), e);
         return handleResponse(
-                LocalDateTime.now(),
                 HttpStatus.UNAUTHORIZED,
                 ErrorCode.INVALID_TOKEN,
                 e.getMessage(),
@@ -72,7 +69,6 @@ public class GlobalExceptionHandler {
     public ResponseEntity<?> handlePinMismatchException(PinMismatchException e, HttpServletRequest request) {
         logger.error(e.getMessage(), e);
         return handleResponse(
-                LocalDateTime.now(),
                 HttpStatus.BAD_REQUEST,
                 ErrorCode.PIN_MISMATCH,
                 e.getMessage(),
@@ -84,7 +80,6 @@ public class GlobalExceptionHandler {
     public ResponseEntity<?> handleExternalServiceException(ExternalServiceException e, HttpServletRequest request) {
         logger.error(e.getMessage(), e);
         return handleResponse(
-                LocalDateTime.now(),
                 HttpStatus.FAILED_DEPENDENCY,
                 ErrorCode.EXTERNAL_SERVICE_ERROR,
                 e.getMessage(),
@@ -96,9 +91,19 @@ public class GlobalExceptionHandler {
     public ResponseEntity<?> handleResourceNotFoundException(ResourceNotFoundException e, HttpServletRequest request) {
         logger.error(e.getMessage(), e);
         return handleResponse(
-                LocalDateTime.now(),
                 HttpStatus.NOT_FOUND,
                 ErrorCode.NOT_FOUND,
+                e.getMessage(),
+                request.getRequestURI()
+        );
+    }
+
+    @ExceptionHandler(FundReservationException.class)
+    public ResponseEntity<?> handleFundReservationException(FundReservationException e, HttpServletRequest request) {
+        logger.error(e.getMessage(), e);
+        return handleResponse(
+                HttpStatus.CONFLICT,
+                ErrorCode.FUND_RESERVATION_ERROR,
                 e.getMessage(),
                 request.getRequestURI()
         );
@@ -109,7 +114,6 @@ public class GlobalExceptionHandler {
 
         logger.error("Global Exception", e);
         return handleResponse(
-                LocalDateTime.now(),
                 HttpStatus.BAD_REQUEST,
                 ErrorCode.SYSTEM_ERROR,
                 e.getMessage(),
@@ -118,7 +122,6 @@ public class GlobalExceptionHandler {
     }
 
     private ResponseEntity<ApiResponse<ErrorResponse>> handleResponse(
-            LocalDateTime timestamp,
             HttpStatus statusCode,
             ErrorCode errorCode,
             String message,
@@ -129,7 +132,7 @@ public class GlobalExceptionHandler {
                 .statusCode(statusCode.value())
                 .errorCode(errorCode)
                 .data(ErrorResponse.builder()
-                        .timestamp(timestamp)
+                        .timestamp(LocalDateTime.now())
                         .statusCode(statusCode)
                         .errorCode(errorCode)
                         .message(message)

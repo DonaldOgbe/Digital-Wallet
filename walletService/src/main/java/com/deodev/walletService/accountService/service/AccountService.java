@@ -11,6 +11,7 @@ import com.deodev.walletService.client.UserServiceClient;
 import com.deodev.walletService.dto.ApiResponse;
 import com.deodev.walletService.dto.response.GetUserDetailsResponse;
 import com.deodev.walletService.enums.Currency;
+import com.deodev.walletService.enums.FundReservationStatus;
 import com.deodev.walletService.exception.*;
 import com.deodev.walletService.walletService.model.Wallet;
 import com.deodev.walletService.walletService.repository.WalletRepository;
@@ -123,7 +124,7 @@ public class AccountService {
         }
 
         FundReservation fundReservation = FundReservation.builder()
-                .accountId(account.getId())
+                .accountNumber(account.getAccountNumber())
                 .transactionId(request.transactionId())
                 .amount(request.amount())
                 .build();
@@ -141,20 +142,44 @@ public class AccountService {
     }
 
     public TransferFundsResponse transferFunds(TransferFundsRequest request) {
-        Account receiver = accountRepository
-                .findByAccountNumberAndCurrency(request.accountNumber(), request.currency())
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Account not found for number: " + request.accountNumber() +
-                                " and currency: " + request.currency()
-                ));
+        FundReservation reservation = fundReservationRepository.findByTransactionId(request.transactionId())
+                .orElseThrow(() -> new ResourceNotFoundException("Fund reservation not found"));
 
-        receiver.setBalance(receiver.getBalance() + request.amount());
-        accountRepository.save(receiver);
+
+        if (reservation.getExpiredAt() != null && reservation.getExpiredAt().isBefore(LocalDateTime.now())) {
+            throw new FundReservationException("Fund reservation has expired");
+        }
+
+        if (reservation.getStatus() != FundReservationStatus.ACTIVE) {
+            throw new FundReservationException("Fund reservation is not active");
+        }
+
+        try {
+            debitBalance(reservation.getAccountNumber(), reservation.getAmount());
+        } catch (Exception e) {
+            throw new FundReservationException(
+                    "Failed to debit sender account: " + reservation.getAccountNumber(), e
+            );
+        }
+
+        try {
+            creditBalance(request.accountNumber(), reservation.getAmount());
+        } catch (Exception e) {
+            throw new FundReservationException(
+                    "Failed to credit receiver account: " + request.accountNumber(), e
+            );
+        }
+
+        reservation.setStatus(FundReservationStatus.USED);
+        reservation.setUsedAt(LocalDateTime.now());
+        fundReservationRepository.save(reservation);
 
         return TransferFundsResponse.builder()
                 .isSuccess(true)
                 .statusCode(HttpStatus.OK)
                 .timestamp(LocalDateTime.now())
+                .transactionId(reservation.getTransactionId())
+                .fundReservationId(reservation.getId())
                 .build();
     }
 
@@ -177,5 +202,4 @@ public class AccountService {
     private boolean accountNumberExists(String accountNumber) {
         return accountRepository.existsByAccountNumber(accountNumber);
     }
-
 }
