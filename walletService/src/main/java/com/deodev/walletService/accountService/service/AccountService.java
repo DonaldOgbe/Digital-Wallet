@@ -183,6 +183,32 @@ public class AccountService {
                 .build();
     }
 
+    public ReleaseFundsResponse releaseFunds(UUID transactionId) {
+        FundReservation reservation = fundReservationRepository.findByTransactionId(transactionId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Reservation not found for transactionId: " + transactionId
+                ));
+
+        if (reservation.getStatus() == FundReservationStatus.USED) {
+            throw new FundReservationException("Reservation already used");
+        }
+        if (reservation.getStatus() == FundReservationStatus.RELEASED) {
+            throw new FundReservationException("Reservation already released");
+        }
+
+        reservation.setStatus(FundReservationStatus.RELEASED);
+        reservation.setReleasedAt(LocalDateTime.now());
+        fundReservationRepository.save(reservation);
+
+        return ReleaseFundsResponse.builder()
+                .isSuccess(true)
+                .statusCode(HttpStatus.OK)
+                .timestamp(LocalDateTime.now())
+                .transactionId(reservation.getTransactionId())
+                .fundReservationId(reservation.getId())
+                .build();
+    }
+
     public void creditBalance(String accountNumber, long amount) {
         Account account = accountRepository.findByAccountNumber(accountNumber)
                 .orElseThrow(() -> new ResourceNotFoundException("Account number does not exist"));
