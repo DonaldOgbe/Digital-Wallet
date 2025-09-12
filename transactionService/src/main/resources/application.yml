@@ -17,4 +17,8 @@ springdoc:
     path: /swagger-ui.html
 
 server:
-  port: ${TRANSACTION_SERVICE_PORT}
+  port: ${TRANSACTION_SERVICE_PORT:8093}
+
+wallet:
+  service:
+    url: ${WALLET_SERVICE_PORT:8092}
