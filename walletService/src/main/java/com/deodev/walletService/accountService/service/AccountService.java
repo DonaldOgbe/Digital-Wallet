@@ -76,6 +76,7 @@ public class AccountService {
                 .build();
     }
 
+    //todo find by currency
     public GetRecipientAccountUserDetailsResponse findAccountAndUserDetails(String accountNumber, String jwt) {
         Account recipientAccount = accountRepository.findByAccountNumber(accountNumber)
                 .orElseThrow(() -> new ResourceNotFoundException("Account number does not exist"));

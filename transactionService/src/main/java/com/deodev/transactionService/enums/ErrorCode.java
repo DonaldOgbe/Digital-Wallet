@@ -1,0 +1,16 @@
+package com.deodev.transactionService.enums;
+
+public enum ErrorCode {
+    NOT_FOUND,
+    SYSTEM_ERROR,
+    INVALID_PIN,
+    INSUFFICIENT_FUNDS,
+    DATABASE_ERROR,
+    DUPLICATE_ACCOUNT_NUMBER,
+    INVALID_REQUEST,
+    EXTERNAL_SERVICE_ERROR,
+    PIN_MISMATCH,
+    INVALID_TOKEN,
+    UNAUTHORIZED,
+    FUND_RESERVATION_ERROR
+}
