@@ -1,22 +1,19 @@
 package com.deodev.userService.service;
 
-import com.deodev.userService.client.WalletServiceClient;
-import com.deodev.userService.dto.request.CreateWalletRequest;
 import com.deodev.userService.dto.request.UserLoginRequest;
 import com.deodev.userService.dto.request.UserRegistrationRequest;
-import com.deodev.userService.dto.response.ApiResponse;
-import com.deodev.userService.dto.response.CreateWalletResponse;
 import com.deodev.userService.dto.response.UserLoginResponse;
 import com.deodev.userService.dto.response.UserRegisteredResponse;
 import com.deodev.userService.exception.UserAlreadyExistsException;
 import com.deodev.userService.model.Role;
 import com.deodev.userService.model.User;
 import com.deodev.userService.enums.UserStatus;
+import com.deodev.userService.rabbitmq.event.UserRegisteredEvent;
+import com.deodev.userService.rabbitmq.publisher.UserEventsPublisher;
 import com.deodev.userService.repository.RoleRepository;
 import com.deodev.userService.repository.UserRepository;
 import com.deodev.userService.util.JwtUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import feign.FeignException;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,7 +41,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtUtil jwtUtil;
-    private final WalletServiceClient walletServiceClient;
+    private final UserEventsPublisher userEventsPublisher;
 
     public UserRegisteredResponse register(UserRegistrationRequest request) {
 
@@ -59,32 +56,18 @@ public class AuthService {
 
         User savedUser = userRepository.save(user);
 
-        CreateWalletResponse walletResponse = createWallet(
-                savedUser.getId(),
-                jwtUtil.generateToken(savedUser.getEmail()));
+        UserRegisteredEvent event = UserRegisteredEvent.builder()
+                .userid(savedUser.getId())
+                .build();
 
-        if (walletResponse.success()) {
-            updateUserStatus(savedUser.getId(), UserStatus.ACTIVE);
-            entityManager.clear();
-            User updatedUser = userRepository.findById(savedUser.getId()).orElseThrow();
-
-            return UserRegisteredResponse.builder()
-                    .isSuccess(true)
-                    .statusCode(HttpStatus.CREATED)
-                    .timestamp(LocalDateTime.now())
-                    .userId(updatedUser.getId())
-                    .walletId(walletResponse.walletId())
-                    .email(updatedUser.getEmail())
-                    .status(updatedUser.getStatus())
-                    .build();
-        }
+        userEventsPublisher.publishUserRegistered(event);
 
         return UserRegisteredResponse.builder()
                 .isSuccess(true)
                 .statusCode(HttpStatus.CREATED)
                 .timestamp(LocalDateTime.now())
                 .userId(savedUser.getId())
-                .walletId(walletResponse.walletId())
+                .walletId(null)
                 .email(savedUser.getEmail())
                 .status(savedUser.getStatus())
                 .build();
@@ -120,21 +103,6 @@ public class AuthService {
     }
 
     // helper methods
-
-    private CreateWalletResponse createWallet(UUID userId, String jwt) {
-        try {
-            return walletServiceClient.createWallet(
-                    CreateWalletRequest
-                            .builder()
-                            .userId(userId)
-                            .build(),
-                    "Bearer ".concat(jwt));
-        } catch (FeignException e) {
-            return CreateWalletResponse.builder()
-                    .success(false)
-                    .build();
-        }
-    }
 
     private void updateUserStatus(UUID userId, UserStatus status) {
         userRepository.updateUserStatus(userId, status);

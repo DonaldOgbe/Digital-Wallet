@@ -25,15 +25,15 @@ public class ApplicationConfig {
 
     @Bean
     public UserDetailsService userDetailsService() {
-       return new UserDetailsService() {
-           @Override
-           public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-               User user = userRepository.findByEmail(email)
-                       .orElseThrow((() ->  new UsernameNotFoundException("User not found with email: " + email)));
+        return new UserDetailsService() {
+            @Override
+            public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+                User user = userRepository.findByEmail(email)
+                        .orElseThrow((() -> new UsernameNotFoundException("User not found with email: " + email)));
 
-               return new CustomUserDetails(user);
-           }
-       };
+                return new CustomUserDetails(user);
+            }
+        };
     }
 
     @Bean
@@ -43,7 +43,7 @@ public class ApplicationConfig {
 
     @Bean
     public AuthenticationProvider authenticationProvider() {
-        DaoAuthenticationProvider authenticationProvider =  new DaoAuthenticationProvider();
+        DaoAuthenticationProvider authenticationProvider = new DaoAuthenticationProvider();
         authenticationProvider.setUserDetailsService(userDetailsService());
         authenticationProvider.setPasswordEncoder(passwordEncoder());
 
