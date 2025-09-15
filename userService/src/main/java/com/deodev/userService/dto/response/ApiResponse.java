@@ -1,35 +1,28 @@
 package com.deodev.userService.dto.response;
 
+import com.deodev.userService.enums.ErrorCode;
 import lombok.*;
 
-@Builder
-@Getter
-@Setter
-@NoArgsConstructor
+@Data
 @AllArgsConstructor
+@NoArgsConstructor
+@Builder
 public class ApiResponse<T> {
 
     @Builder.Default
     private boolean success = true;
 
-    private String message;
+    private int statusCode;
 
-    private String note;
+    @Builder.Default
+    private ErrorCode errorCode = null;
 
     private T data;
 
-    public static <T> ApiResponse<T> success(String message, T data) {
+    public static <T> ApiResponse<T> success(int statusCode, T data) {
         return ApiResponse.<T>builder()
-                .message(message)
+                .statusCode(statusCode)
                 .data(data)
-                .build();
-    }
-
-    public static <T> ApiResponse<T> error(String message, String note) {
-        return ApiResponse.<T>builder()
-                .success(false)
-                .message(message)
-                .note(note)
                 .build();
     }
 }

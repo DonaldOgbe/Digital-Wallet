@@ -6,21 +6,19 @@ import jakarta.validation.constraints.Pattern;
 import lombok.*;
 
 @Builder
-@Getter
-@Setter
-@AllArgsConstructor
-@NoArgsConstructor
-public class UserRegistrationRequest {
 
-    @NotBlank(message = "Username cannot be Blank")
-    @Pattern(regexp = "^[a-zA-Z0-9]+$",
-    message = "Username can only contain letters, numbers")
-    private String username;
+public record UserRegistrationRequest(
+        @NotBlank(message = "First name cannot be Blank")
+        String firstname,
 
-    @NotBlank(message = "Username cannot be Blank")
-    @Email(message = "Invalid Email Format")
-    private String email;
+        @NotBlank(message = "Last name cannot be Blank")
+        String lastname,
 
-    @NotBlank(message = "Password cannot be Blank")
-    private String password;
+        @NotBlank(message = "Email cannot be Blank")
+        @Email(message = "Invalid Email Format")
+        String email,
+
+        @NotBlank(message = "Password cannot be Blank")
+        String password
+) {
 }

@@ -2,6 +2,8 @@ package com.deodev.userService.config;
 
 import com.deodev.userService.model.User;
 import com.deodev.userService.repository.UserRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -25,9 +27,9 @@ public class ApplicationConfig {
     public UserDetailsService userDetailsService() {
        return new UserDetailsService() {
            @Override
-           public UserDetails loadUserByUsername(String identifier) throws UsernameNotFoundException {
-               User user = userRepository.findByUsernameOrEmail(identifier, identifier)
-                       .orElseThrow((() ->  new UsernameNotFoundException("User not found with username/email: " + identifier)));
+           public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+               User user = userRepository.findByEmail(email)
+                       .orElseThrow((() ->  new UsernameNotFoundException("User not found with email: " + email)));
 
                return new CustomUserDetails(user);
            }
@@ -52,4 +54,10 @@ public class ApplicationConfig {
     public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
         return configuration.getAuthenticationManager();
     }
+
+    @Bean
+    public ObjectMapper objectMapper() {
+        return new ObjectMapper().registerModule(new JavaTimeModule());
+    }
+
 }

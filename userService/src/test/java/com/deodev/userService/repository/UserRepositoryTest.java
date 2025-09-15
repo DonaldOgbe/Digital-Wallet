@@ -2,7 +2,7 @@ package com.deodev.userService.repository;
 
 import com.deodev.userService.dto.request.UserRegistrationRequest;
 import com.deodev.userService.model.User;
-import com.deodev.userService.model.enums.UserStatus;
+import com.deodev.userService.enums.UserStatus;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
@@ -11,7 +11,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import static org.assertj.core.api.Assertions.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -33,7 +32,8 @@ class UserRepositoryTest {
     void setUp() {
         userRegistrationRequest = UserRegistrationRequest.builder()
                 .email("test@email.com")
-                .username("testname")
+                .firstname("firstname")
+                .lastname("lastname")
                 .password("4djddedsdjdd4d")
                 .build();
 
@@ -44,7 +44,7 @@ class UserRepositoryTest {
     void existsByUsername() {
         testUserRepository.save(user);
 
-        assertTrue(testUserRepository.existsByUsername(user.getUsername()));
+        assertTrue(testUserRepository.existsByEmail(user.getEmail()));
     }
 
     @Test

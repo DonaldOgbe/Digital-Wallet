@@ -6,11 +6,12 @@ import com.deodev.userService.dto.request.UserLoginRequest;
 import com.deodev.userService.dto.request.UserRegistrationRequest;
 import com.deodev.userService.dto.response.ApiResponse;
 import com.deodev.userService.dto.response.CreateWalletResponse;
+import com.deodev.userService.dto.response.UserLoginResponse;
 import com.deodev.userService.dto.response.UserRegisteredResponse;
 import com.deodev.userService.exception.UserAlreadyExistsException;
 import com.deodev.userService.model.Role;
 import com.deodev.userService.model.User;
-import com.deodev.userService.model.enums.UserStatus;
+import com.deodev.userService.enums.UserStatus;
 import com.deodev.userService.repository.RoleRepository;
 import com.deodev.userService.repository.UserRepository;
 import com.deodev.userService.util.JwtUtil;
@@ -19,6 +20,7 @@ import feign.FeignException;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -44,9 +46,9 @@ public class AuthService {
     private final JwtUtil jwtUtil;
     private final WalletServiceClient walletServiceClient;
 
-    public ApiResponse<?> register(UserRegistrationRequest request) {
+    public UserRegisteredResponse register(UserRegistrationRequest request) {
 
-        validateUser(request.getUsername(), request.getEmail());
+        validateUser(request.email());
 
         User user = new ObjectMapper().convertValue(request, User.class);
         user.setPassword(passwordEncoder.encode(user.getPassword()));
@@ -59,44 +61,39 @@ public class AuthService {
 
         CreateWalletResponse walletResponse = createWallet(
                 savedUser.getId(),
-                jwtUtil.generateToken(savedUser.getUsername()));
+                jwtUtil.generateToken(savedUser.getEmail()));
 
         if (walletResponse.success()) {
             updateUserStatus(savedUser.getId(), UserStatus.ACTIVE);
             entityManager.clear();
-            User updatedUser = userRepository.findByUsername(savedUser.getUsername()).orElseThrow();
+            User updatedUser = userRepository.findById(savedUser.getId()).orElseThrow();
 
-            return ApiResponse.success("User Registered Successfully",
-            UserRegisteredResponse
-                    .builder()
+            return UserRegisteredResponse.builder()
+                    .isSuccess(true)
+                    .statusCode(HttpStatus.CREATED)
+                    .timestamp(LocalDateTime.now())
                     .userId(updatedUser.getId())
                     .walletId(walletResponse.walletId())
-                    .username(updatedUser.getUsername())
                     .email(updatedUser.getEmail())
                     .status(updatedUser.getStatus())
-                    .registeredAt(LocalDateTime.now())
-                    .build());
+                    .build();
         }
 
-        return ApiResponse.<UserRegisteredResponse>builder()
-                .message("User Registration Incomplete")
-                .note("Wallet service failure")
-                .data(UserRegisteredResponse
-                        .builder()
-                        .userId(savedUser.getId())
-                        .walletId(walletResponse.walletId())
-                        .username(savedUser.getUsername())
-                        .email(savedUser.getEmail())
-                        .status(savedUser.getStatus())
-                        .registeredAt(LocalDateTime.now())
-                        .build())
+        return UserRegisteredResponse.builder()
+                .isSuccess(true)
+                .statusCode(HttpStatus.CREATED)
+                .timestamp(LocalDateTime.now())
+                .userId(savedUser.getId())
+                .walletId(walletResponse.walletId())
+                .email(savedUser.getEmail())
+                .status(savedUser.getStatus())
                 .build();
     }
 
-    public ApiResponse<String> login(UserLoginRequest request) {
+    public UserLoginResponse login(UserLoginRequest request) {
         try {
-            Authentication loginAuthentication =  authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword()));
+            Authentication loginAuthentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(request.email(), request.password()));
 
             UserDetails userDetails = (UserDetails) loginAuthentication.getPrincipal();
 
@@ -110,7 +107,13 @@ public class AuthService {
             String jwt = jwtUtil.generateToken(claims, userDetails.getUsername());
             SecurityContextHolder.getContext().setAuthentication(jwtUtil.getAuthenticationFromToken(jwt));
 
-            return ApiResponse.success("Login Successful", jwt);
+            return UserLoginResponse.builder()
+                    .isSuccess(true)
+                    .statusCode(HttpStatus.OK)
+                    .timestamp(LocalDateTime.now())
+                    .user(userDetails.getUsername())
+                    .token(jwt)
+                    .build();
         } catch (Exception e) {
             throw new RuntimeException(e.getMessage());
         }
@@ -137,14 +140,10 @@ public class AuthService {
         userRepository.updateUserStatus(userId, status);
     }
 
-    private void validateUser(String username, String email) {
+    private void validateUser(String email) {
         try {
             if (userRepository.existsByEmail(email)) {
                 throw new UserAlreadyExistsException("Email Already Exists");
-            }
-
-            if (userRepository.existsByUsername(username)) {
-                throw new UserAlreadyExistsException("Username Already Exists");
             }
         } catch (UserAlreadyExistsException e) {
             throw new UserAlreadyExistsException(e.getMessage());

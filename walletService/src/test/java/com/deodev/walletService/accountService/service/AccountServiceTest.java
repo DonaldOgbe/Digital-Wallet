@@ -410,8 +410,6 @@ class AccountServiceTest {
 
             request = TransferFundsRequest.builder()
                     .accountNumber(receiverAccountNumber)
-                    .amount(200L)
-                    .currency(Currency.NGN)
                     .transactionId(transactionId)
                     .build();
         }

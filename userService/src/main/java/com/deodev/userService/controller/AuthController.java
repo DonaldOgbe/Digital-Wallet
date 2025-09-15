@@ -3,6 +3,7 @@ package com.deodev.userService.controller;
 import com.deodev.userService.dto.request.UserLoginRequest;
 import com.deodev.userService.dto.request.UserRegistrationRequest;
 import com.deodev.userService.dto.response.ApiResponse;
+import com.deodev.userService.dto.response.UserLoginResponse;
 import com.deodev.userService.dto.response.UserRegisteredResponse;
 import com.deodev.userService.service.AuthService;
 import jakarta.validation.Valid;
@@ -24,16 +25,17 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@Valid @RequestBody UserRegistrationRequest request) {
 
-        ApiResponse<?> response = authService.register(request);
+        UserRegisteredResponse response = authService.register(request);
+
         return ResponseEntity.status(HttpStatus.OK)
-                .body(response);
+                .body(ApiResponse.success(HttpStatus.OK.value(), response));
     }
 
     @PostMapping("/login")
     public ResponseEntity<?> authenticateUser(@Valid @RequestBody UserLoginRequest request) {
 
-        ApiResponse<String> response = authService.login(request);
+        UserLoginResponse response = authService.login(request);
         return ResponseEntity.status(HttpStatus.OK)
-                .body(response);
+                .body(ApiResponse.success(HttpStatus.OK.value(), response));
     }
 }

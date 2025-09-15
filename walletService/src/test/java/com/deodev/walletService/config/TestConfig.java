@@ -15,27 +15,27 @@ import java.io.IOException;
 @TestConfiguration
 public class TestConfig {
 
-    @Bean
-    @Primary
-    public TestRestTemplate testRestTemplate() {
-
-        CloseableHttpClient httpClient = HttpClients.custom()
-                .disableRedirectHandling()
-                .build();
-
-        HttpComponentsClientHttpRequestFactory requestFactory =
-                new HttpComponentsClientHttpRequestFactory(httpClient);
-
-        TestRestTemplate testRestTemplate = new TestRestTemplate();
-        testRestTemplate.getRestTemplate().setRequestFactory(requestFactory);
-        testRestTemplate.getRestTemplate().setErrorHandler(new DefaultResponseErrorHandler() {
-            @Override
-            public boolean hasError(ClientHttpResponse response) throws IOException {
-                int statusCode = response.getStatusCode().value();
-                return statusCode < 200 || (statusCode >= 300 && statusCode != 401 && statusCode != 403);
-            }
-        });
-
-        return testRestTemplate;
-    }
+//    @Bean
+//    @Primary
+//    public TestRestTemplate testRestTemplate() {
+//
+//        CloseableHttpClient httpClient = HttpClients.custom()
+//                .disableRedirectHandling()
+//                .build();
+//
+//        HttpComponentsClientHttpRequestFactory requestFactory =
+//                new HttpComponentsClientHttpRequestFactory(httpClient);
+//
+//        TestRestTemplate testRestTemplate = new TestRestTemplate();
+//        testRestTemplate.getRestTemplate().setRequestFactory(requestFactory);
+//        testRestTemplate.getRestTemplate().setErrorHandler(new DefaultResponseErrorHandler() {
+//            @Override
+//            public boolean hasError(ClientHttpResponse response) throws IOException {
+//                int statusCode = response.getStatusCode().value();
+//                return statusCode < 200 || (statusCode >= 300 && statusCode != 401 && statusCode != 403);
+//            }
+//        });
+//
+//        return testRestTemplate;
+//    }
 }

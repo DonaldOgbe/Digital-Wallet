@@ -1,12 +1,13 @@
 package com.deodev.userService.util;
 
 import com.deodev.userService.exception.TokenValidationException;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.SignatureException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Component;
@@ -20,8 +21,10 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 
-@RequiredArgsConstructor
+
+@Slf4j
 @Component
+@RequiredArgsConstructor
 public class JwtUtil {
 
     private final JwtSecretUtil secretUtil;
@@ -31,14 +34,21 @@ public class JwtUtil {
     }
 
     public String generateToken(String subject) {
-        Map<String, Object> extraClaims = new HashMap<>();
-        extraClaims.put("authorities", List.of("ROLE_USER"));
-        return createToken(extraClaims, subject);
+        return createToken(subject);
     }
 
     private String createToken(Map<String, Object> extraClaims, String subject) {
         return Jwts.builder()
                 .setClaims(extraClaims)
+                .setSubject(subject)
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + secretUtil.getExpiration()))
+                .signWith(getSigningKey(), SignatureAlgorithm.HS512)
+                .compact();
+    }
+
+    private String createToken(String subject) {
+        return Jwts.builder()
                 .setSubject(subject)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + secretUtil.getExpiration()))
@@ -54,10 +64,8 @@ public class JwtUtil {
         return getClaimFromToken(token, claims -> (List<String>) claims.get("authorities"));
     }
 
-    public UsernamePasswordAuthenticationToken getAuthenticationFromToken(String token) {
+    public Authentication getAuthenticationFromToken(String token) {
         try {
-            validateToken(token);
-
             final String username = getUsernameFromToken(token);
             final List<String> authorities = getAuthoritiesFromToken(token);
 
@@ -66,24 +74,11 @@ public class JwtUtil {
                     .collect(Collectors.toUnmodifiableList());
 
             return new UsernamePasswordAuthenticationToken(username, null, grantedAuthorities);
-        } catch (Exception e) {
-            throw new TokenValidationException(e.getMessage());
+        } catch (SignatureException e) {
+            throw new TokenValidationException("Invalid Token");
         }
     }
 
-    public boolean validateToken(String token) {
-        try {
-            getAllClaimsFromToken(token);
-            return true;
-        } catch (Exception e) {
-            return false;
-        }
-    }
-
-    public  <T> T getClaimFromToken(String token, Function<Claims, T> claimsTFunction) {
-        final Claims claims = getAllClaimsFromToken(token);
-        return claimsTFunction.apply(claims);
-    }
 
     private Claims getAllClaimsFromToken(String token) {
         try {
@@ -92,10 +87,34 @@ public class JwtUtil {
                     .build()
                     .parseClaimsJws(token)
                     .getBody();
-        } catch (Exception e) {
-            throw new TokenValidationException("Invalid JWT Token");
+        } catch (SignatureException e) {
+            throw new TokenValidationException("Invalid Token");
         }
+    }
 
+    public  <T> T getClaimFromToken(String token, Function<Claims, T> function) {
+        final Claims claims = getAllClaimsFromToken(token);
+        return function.apply(claims);
+    }
+
+    public boolean isValidToken(String token) {
+        try {
+            getAllClaimsFromToken(token);
+            return true;
+        } catch (ExpiredJwtException e) {
+            throw new TokenValidationException("Token Expired", e);
+        } catch (SignatureException e) {
+            throw new TokenValidationException("Invalid Signature", e);
+        } catch (MalformedJwtException e) {
+            log.error("Malformed JWT: {}", token);
+            return false;
+        } catch (UnsupportedJwtException e) {
+            log.error("Unsupported JWT format: {}", token);
+            return false;
+        } catch (IllegalArgumentException e) {
+            log.error("JWT token is null or empty");
+            return false;
+        }
     }
 
     private Key getSigningKey() {

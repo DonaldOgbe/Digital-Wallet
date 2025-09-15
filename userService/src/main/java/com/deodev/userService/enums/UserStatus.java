@@ -1,4 +1,4 @@
-package com.deodev.userService.model.enums;
+package com.deodev.userService.enums;
 
 public enum UserStatus {
     ACTIVE,

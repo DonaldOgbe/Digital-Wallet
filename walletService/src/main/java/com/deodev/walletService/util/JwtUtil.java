@@ -27,7 +27,6 @@ import java.util.stream.Collectors;
 public class JwtUtil {
 
     private final JwtSecretUtil secretUtil;
-    private String cacheToken;
 
     public String generateToken(Map<String, Object> extraClaims, String subject) {
         return createToken(extraClaims, subject);
@@ -35,15 +34,6 @@ public class JwtUtil {
 
     public String generateToken(String subject) {
         return createToken(subject);
-    }
-
-    public String generateServiceToken(Map<String, Object> extraClaims) {
-        if (cacheToken != null && isValidToken(cacheToken)) {
-            return cacheToken;
-        }
-
-        cacheToken = generateToken(extraClaims, "wallet-service");
-        return cacheToken;
     }
 
     private String createToken(Map<String, Object> extraClaims, String subject) {
@@ -110,17 +100,17 @@ public class JwtUtil {
         try {
             getAllClaimsFromToken(token);
             return true;
-        } catch (ExpiredJwtException ex) {
-            throw new TokenValidationException("Token Expired", ex);
-        } catch (SignatureException ex) {
-            throw new TokenValidationException("Invalid Signature", ex);
-        } catch (MalformedJwtException ex) {
+        } catch (ExpiredJwtException e) {
+            throw new TokenValidationException("Token Expired", e);
+        } catch (SignatureException e) {
+            throw new TokenValidationException("Invalid Signature", e);
+        } catch (MalformedJwtException e) {
             log.error("Malformed JWT: {}", token);
             return false;
-        } catch (UnsupportedJwtException ex) {
+        } catch (UnsupportedJwtException e) {
             log.error("Unsupported JWT format: {}", token);
             return false;
-        } catch (IllegalArgumentException ex) {
+        } catch (IllegalArgumentException e) {
             log.error("JWT token is null or empty");
             return false;
         }
@@ -130,7 +120,4 @@ public class JwtUtil {
         return Keys.hmacShaKeyFor(secretUtil.getSecret().getBytes(StandardCharsets.UTF_8));
     }
 
-    public void clearCachedToken() {
-        cacheToken = null;
-    }
 }

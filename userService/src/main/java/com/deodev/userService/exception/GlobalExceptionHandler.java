@@ -1,6 +1,9 @@
 package com.deodev.userService.exception;
 
 import com.deodev.userService.dto.response.ApiResponse;
+import com.deodev.userService.dto.response.ErrorResponse;
+import com.deodev.userService.enums.ErrorCode;
+import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -9,16 +12,16 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
+import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
-
     private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<?> handleValidationError(MethodArgumentNotValidException e) {
+    public ResponseEntity<?> handleValidationError(MethodArgumentNotValidException e, HttpServletRequest request) {
         String errors = e.getBindingResult()
                 .getFieldErrors()
                 .stream()
@@ -31,53 +34,95 @@ public class GlobalExceptionHandler {
         logger.error("Validation Error", e);
         return handleResponse(
                 HttpStatus.BAD_REQUEST,
+                ErrorCode.INVALID_REQUEST,
                 errors,
-                "Validation Error");
+                request.getRequestURI()
+        );
     }
 
-    @ExceptionHandler(UserAlreadyExistsException.class)
-    public ResponseEntity<?> handleUserExists(UserAlreadyExistsException e) {
-
-        logger.error("User Already Exists", e);
-        return handleResponse(HttpStatus.BAD_REQUEST,
-                "Registration Failed",
-                e.getMessage());
+    @ExceptionHandler(ExternalServiceException.class)
+    public ResponseEntity<?> handleExternalServiceException(ExternalServiceException e, HttpServletRequest request) {
+        logger.error(e.getMessage(), e);
+        return handleResponse(
+                HttpStatus.FAILED_DEPENDENCY,
+                ErrorCode.EXTERNAL_SERVICE_ERROR,
+                e.getMessage(),
+                request.getRequestURI()
+        );
     }
 
     @ExceptionHandler(InvalidLoginCredentialsException.class)
-    public ResponseEntity<?> handleInvalidLoginCredentials(InvalidLoginCredentialsException e) {
+    public ResponseEntity<?> handleInvalidLoginCredentials(InvalidLoginCredentialsException e, HttpServletRequest request) {
+        logger.error(e.getMessage(), e);
+        return handleResponse(
+                HttpStatus.UNAUTHORIZED,
+                ErrorCode.INVALID_CREDENTIALS,
+                e.getMessage(),
+                request.getRequestURI()
+        );
+    }
 
-        logger.error("Invalid Login Credentials", e);
-        return handleResponse(HttpStatus.BAD_REQUEST,
-                "Login Failed",
-                e.getMessage());
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<?> handleResourceNotFound(ResourceNotFoundException e, HttpServletRequest request) {
+        logger.error(e.getMessage(), e);
+        return handleResponse(
+                HttpStatus.NOT_FOUND,
+                ErrorCode.NOT_FOUND,
+                e.getMessage(),
+                request.getRequestURI()
+        );
     }
 
     @ExceptionHandler(TokenValidationException.class)
-    public ResponseEntity<?> handleTokenValidationError(TokenValidationException e) {
-        return handleResponse(HttpStatus.UNAUTHORIZED,
-                "Token Validation Error",
-                e.getMessage());
+    public ResponseEntity<?> handleTokenValidation(TokenValidationException e, HttpServletRequest request) {
+        logger.error(e.getMessage(), e);
+        return handleResponse(
+                HttpStatus.UNAUTHORIZED,
+                ErrorCode.INVALID_TOKEN,
+                e.getMessage(),
+                request.getRequestURI()
+        );
+    }
+
+    @ExceptionHandler(UserAlreadyExistsException.class)
+    public ResponseEntity<?> handleUserAlreadyExists(UserAlreadyExistsException e, HttpServletRequest request) {
+        logger.error(e.getMessage(), e);
+        return handleResponse(
+                HttpStatus.CONFLICT,
+                ErrorCode.USER_ALREADY_EXISTS,
+                e.getMessage(),
+                request.getRequestURI()
+        );
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<?> handleVagueExceptions(Exception e) {
-
-        logger.error("Exception", e);
-        return handleResponse(HttpStatus.BAD_REQUEST,
-                "Internal Server Error",
-                e.getMessage());
+    public ResponseEntity<?> handleExceptions(Exception e, HttpServletRequest request) {
+        logger.error("Global Exception", e);
+        return handleResponse(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                ErrorCode.SYSTEM_ERROR,
+                e.getMessage(),
+                request.getRequestURI()
+        );
     }
 
-    private <T> ResponseEntity<ApiResponse<T>>  handleResponse(HttpStatus httpStatus, String message, String note) {
-        ApiResponse<T> response = ApiResponse.<T>builder()
+    private ResponseEntity<ApiResponse<ErrorResponse>> handleResponse(
+            HttpStatus statusCode,
+            ErrorCode errorCode,
+            String message,
+            String path
+    ) {
+        return ResponseEntity.status(statusCode).body(ApiResponse.<ErrorResponse>builder()
                 .success(false)
-                .message(message)
-                .note(note)
-                .data(null)
-                .build();
-
-        return ResponseEntity.status(httpStatus)
-                .body(response);
+                .statusCode(statusCode.value())
+                .errorCode(errorCode)
+                .data(ErrorResponse.builder()
+                        .timestamp(LocalDateTime.now())
+                        .statusCode(statusCode)
+                        .errorCode(errorCode)
+                        .message(message)
+                        .path(path)
+                        .build())
+                .build());
     }
 }

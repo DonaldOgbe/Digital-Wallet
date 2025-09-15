@@ -1,21 +1,17 @@
 package com.deodev.userService.dto.request;
 
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-public class UserLoginRequest {
+@Builder
+public record UserLoginRequest(
+        @NotBlank(message = "Email cannot be Blank")
+        @Email(message = "Invalid Email Format")
+        String email,
 
-    @NotBlank(message = "Username or Email cannot be Blank")
-    private String username;
-
-    @NotBlank(message = "Password cannot be Blank")
-    private String password;
+        @NotBlank(message = "Password cannot be Blank")
+        String password
+) {
 }

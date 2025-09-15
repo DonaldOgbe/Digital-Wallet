@@ -43,7 +43,8 @@ class AuthControllerTest {
         // given
         UserRegistrationRequest requestBody = UserRegistrationRequest.builder()
                 .email("test@email.com")
-                .username("testname")
+                .firstname("firstname")
+                .lastname("lastname")
                 .password("testPassword").build();
 
         HttpEntity requestEntity = new HttpEntity(requestBody);

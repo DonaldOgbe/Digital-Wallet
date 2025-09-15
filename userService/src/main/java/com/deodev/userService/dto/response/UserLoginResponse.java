@@ -1,21 +1,16 @@
 package com.deodev.userService.dto.response;
 
-import com.deodev.userService.enums.UserStatus;
 import lombok.Builder;
 import org.springframework.http.HttpStatus;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 @Builder
-public record UserRegisteredResponse(
+public record UserLoginResponse(
         boolean isSuccess,
         HttpStatus statusCode,
         LocalDateTime timestamp,
-        UUID userId,
-        UUID walletId,
-        String username,
-        String email,
-        UserStatus status
+        String token,
+        String user
 ) {
 }

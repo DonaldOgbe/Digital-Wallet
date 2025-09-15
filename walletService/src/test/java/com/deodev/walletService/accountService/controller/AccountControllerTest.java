@@ -60,7 +60,6 @@ class AccountControllerTest {
     @MockBean
     private UserServiceClient userServiceClient;
 
-
     private HttpHeaders headers;
     private String jwt;
     private Map<String, Object> extraClaims;
@@ -261,8 +260,6 @@ class AccountControllerTest {
 
         TransferFundsRequest request = TransferFundsRequest.builder()
                 .accountNumber(receiverAccount.accountNumber())
-                .currency(Currency.NGN)
-                .amount(200L)
                 .transactionId(transactionId)
                 .build();
 

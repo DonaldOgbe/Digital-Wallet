@@ -1,6 +1,6 @@
-package com.deodev.walletService.util;
+package com.deodev.userService.util;
 
-import com.deodev.walletService.exception.TokenValidationException;
+import com.deodev.userService.exception.TokenValidationException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
@@ -12,8 +12,8 @@ import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.*;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
-import static org.assertj.core.api.Assertions.*;
 
 class JwtUtilTest {
 
@@ -90,7 +90,7 @@ class JwtUtilTest {
         Authentication authentication = jwtUtil.getAuthenticationFromToken(token);
         List<String> tokenAuthorities = authentication.getAuthorities().stream()
                 .map(Object::toString)
-                        .toList();
+                .toList();
 
         // then
         assertThat(subject).isEqualTo(authentication.getPrincipal());
