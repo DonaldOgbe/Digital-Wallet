@@ -27,8 +27,8 @@ public class AuthController {
 
         UserRegisteredResponse response = authService.register(request);
 
-        return ResponseEntity.status(HttpStatus.OK)
-                .body(ApiResponse.success(HttpStatus.OK.value(), response));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success(HttpStatus.CREATED.value(), response));
     }
 
     @PostMapping("/login")

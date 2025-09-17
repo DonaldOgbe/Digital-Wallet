@@ -4,30 +4,19 @@ import com.deodev.userService.dto.request.UserLoginRequest;
 import com.deodev.userService.dto.request.UserRegistrationRequest;
 import com.deodev.userService.dto.response.UserLoginResponse;
 import com.deodev.userService.dto.response.UserRegisteredResponse;
-import com.deodev.userService.exception.UserAlreadyExistsException;
-import com.deodev.userService.model.Role;
 import com.deodev.userService.model.User;
-import com.deodev.userService.enums.UserStatus;
-import com.deodev.userService.rabbitmq.event.UserRegisteredEvent;
 import com.deodev.userService.rabbitmq.publisher.UserEventsPublisher;
-import com.deodev.userService.repository.RoleRepository;
-import com.deodev.userService.repository.UserRepository;
 import com.deodev.userService.util.JwtUtil;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.*;
 
 @Service
@@ -35,37 +24,19 @@ import java.util.*;
 public class AuthService {
 
     @Autowired
-    private EntityManager entityManager;
-    private final UserRepository userRepository;
-    private final RoleRepository roleRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final AuthenticationManager authenticationManager;
     private final JwtUtil jwtUtil;
     private final UserEventsPublisher userEventsPublisher;
+    private final AuthenticationManager authenticationManager;
+    private final UserService userService;
 
     public UserRegisteredResponse register(UserRegistrationRequest request) {
+        userService.validateUser(request.email());
 
-        validateUser(request.email());
+        User savedUser = userService.saveUser(userService.createNewUser(request));
 
-        User user = new ObjectMapper().convertValue(request, User.class);
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
-
-        Role defaultRole = roleRepository.findByName("ROLE_USER")
-                .orElseThrow(() -> new RuntimeException("Role not found"));
-        user.setRoles(Set.of(defaultRole));
-
-        User savedUser = userRepository.save(user);
-
-        UserRegisteredEvent event = UserRegisteredEvent.builder()
-                .userid(savedUser.getId())
-                .build();
-
-        userEventsPublisher.publishUserRegistered(event);
+        userEventsPublisher.publishUserRegistered(savedUser);
 
         return UserRegisteredResponse.builder()
-                .isSuccess(true)
-                .statusCode(HttpStatus.CREATED)
-                .timestamp(LocalDateTime.now())
                 .userId(savedUser.getId())
                 .walletId(null)
                 .email(savedUser.getEmail())
@@ -74,47 +45,30 @@ public class AuthService {
     }
 
     public UserLoginResponse login(UserLoginRequest request) {
-        try {
-            Authentication loginAuthentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(request.email(), request.password()));
 
-            UserDetails userDetails = (UserDetails) loginAuthentication.getPrincipal();
+        UserDetails userDetails = authenticate(request.email(), request.password());
 
-            List<String> authorities = userDetails.getAuthorities().stream()
-                    .map(GrantedAuthority::getAuthority)
-                    .toList();
+        List<String> authorities = userDetails.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .toList();
 
-            Map<String, Object> claims = new HashMap<>();
-            claims.put("authorities", authorities);
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("authorities", authorities);
 
-            String jwt = jwtUtil.generateToken(claims, userDetails.getUsername());
-            SecurityContextHolder.getContext().setAuthentication(jwtUtil.getAuthenticationFromToken(jwt));
+        String jwt = jwtUtil.generateToken(claims, userDetails.getUsername());
+        SecurityContextHolder.getContext().setAuthentication(jwtUtil.getAuthenticationFromToken(jwt));
 
-            return UserLoginResponse.builder()
-                    .isSuccess(true)
-                    .statusCode(HttpStatus.OK)
-                    .timestamp(LocalDateTime.now())
-                    .user(userDetails.getUsername())
-                    .token(jwt)
-                    .build();
-        } catch (Exception e) {
-            throw new RuntimeException(e.getMessage());
-        }
+        return UserLoginResponse.builder()
+                .user(userDetails.getUsername())
+                .token(jwt)
+                .build();
     }
 
-    // helper methods
+    public UserDetails authenticate(String email, String password) {
+        Authentication loginAuthentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(email, password));
 
-    private void updateUserStatus(UUID userId, UserStatus status) {
-        userRepository.updateUserStatus(userId, status);
+        return (UserDetails) loginAuthentication.getPrincipal();
     }
 
-    private void validateUser(String email) {
-        try {
-            if (userRepository.existsByEmail(email)) {
-                throw new UserAlreadyExistsException("Email Already Exists");
-            }
-        } catch (UserAlreadyExistsException e) {
-            throw new UserAlreadyExistsException(e.getMessage());
-        }
-    }
 }

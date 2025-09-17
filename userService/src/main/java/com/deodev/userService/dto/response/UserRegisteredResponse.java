@@ -9,12 +9,8 @@ import java.util.UUID;
 
 @Builder
 public record UserRegisteredResponse(
-        boolean isSuccess,
-        HttpStatus statusCode,
-        LocalDateTime timestamp,
         UUID userId,
         UUID walletId,
-        String username,
         String email,
         UserStatus status
 ) {

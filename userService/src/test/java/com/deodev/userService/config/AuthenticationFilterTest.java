@@ -49,8 +49,6 @@ class AuthenticationFilterTest {
         assertThat(body.getErrorCode()).isEqualTo(ErrorCode.INVALID_TOKEN);
 
         ErrorResponse data = body.getData();
-        assertThat(data.statusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
-        assertThat(data.errorCode()).isEqualTo(ErrorCode.INVALID_TOKEN);
         assertThat(data.message()).containsIgnoringCase("invalid");
         assertThat(data.path()).isEqualTo("/api/v1/users/" + userId);
     }

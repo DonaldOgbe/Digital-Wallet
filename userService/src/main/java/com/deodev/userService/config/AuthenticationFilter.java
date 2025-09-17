@@ -65,9 +65,6 @@ public class AuthenticationFilter extends OncePerRequestFilter {
             log.warn("Token validation failed for [{} {}]: {}", request.getMethod(), request.getRequestURI(), e.getMessage());
 
             ErrorResponse data = ErrorResponse.builder()
-                    .timestamp(LocalDateTime.now())
-                    .statusCode(HttpStatus.UNAUTHORIZED)
-                    .errorCode(ErrorCode.INVALID_TOKEN)
                     .message("Invalid or expired token")
                     .path(request.getRequestURI())
                     .build();
@@ -75,6 +72,7 @@ public class AuthenticationFilter extends OncePerRequestFilter {
             ApiResponse<ErrorResponse> apiResponse = ApiResponse.<ErrorResponse>builder()
                     .success(false)
                     .statusCode(HttpStatus.UNAUTHORIZED.value())
+                    .timestamp(LocalDateTime.now())
                     .errorCode(ErrorCode.INVALID_TOKEN)
                     .data(data)
                     .build();
@@ -89,9 +87,6 @@ public class AuthenticationFilter extends OncePerRequestFilter {
             log.error("Unexpected error in auth filter for {} {}", request.getMethod(), request.getRequestURI(), e);
 
             ErrorResponse data = ErrorResponse.builder()
-                    .timestamp(LocalDateTime.now())
-                    .statusCode(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .errorCode(ErrorCode.SYSTEM_ERROR)
                     .message("Internal server error")
                     .path(request.getRequestURI())
                     .build();
@@ -99,6 +94,7 @@ public class AuthenticationFilter extends OncePerRequestFilter {
             ApiResponse<ErrorResponse> apiResponse = ApiResponse.<ErrorResponse>builder()
                     .success(false)
                     .statusCode(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                    .timestamp(LocalDateTime.now())
                     .errorCode(ErrorCode.SYSTEM_ERROR)
                     .data(data)
                     .build();
