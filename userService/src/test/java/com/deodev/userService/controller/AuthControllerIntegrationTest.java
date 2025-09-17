@@ -4,7 +4,6 @@ import com.deodev.userService.dto.request.UserLoginRequest;
 import com.deodev.userService.dto.request.UserRegistrationRequest;
 import com.deodev.userService.enums.UserStatus;
 import com.deodev.userService.model.User;
-import com.deodev.userService.rabbitmq.event.UserRegisteredEvent;
 import com.deodev.userService.rabbitmq.publisher.UserEventsPublisher;
 import com.deodev.userService.repository.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;

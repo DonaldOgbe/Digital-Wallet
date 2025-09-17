@@ -27,8 +27,8 @@ public class UserService {
         User user = userRepository.findById(userId).orElseThrow();
 
         return GetUserDetailsResponse.builder()
-                .firstName(user.getFirstname())
-                .lastName(user.getLastname())
+                .firstname(user.getFirstname())
+                .lastname(user.getLastname())
                 .email(user.getEmail())
                 .build();
     }
