@@ -21,8 +21,6 @@ public class WalletService {
         Wallet savedWallet = walletRepository.save(wallet);
 
         return CreateWalletResponse.builder()
-                .success(true)
-                .note("Wallet created successfully")
                 .userId(savedWallet.getUserId())
                 .walletId(savedWallet.getId())
                 .build();

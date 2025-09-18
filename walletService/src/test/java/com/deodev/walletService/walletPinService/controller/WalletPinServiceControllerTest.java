@@ -1,7 +1,6 @@
 package com.deodev.walletService.walletPinService.controller;
 
 import com.deodev.walletService.dto.ApiResponse;
-import com.deodev.walletService.dto.ErrorResponse;
 import com.deodev.walletService.util.JwtUtil;
 import com.deodev.walletService.walletPinService.dto.request.SetPinRequest;
 import com.deodev.walletService.walletPinService.dto.request.UpdatePinRequest;
@@ -12,7 +11,6 @@ import com.deodev.walletService.walletPinService.model.WalletPin;
 import com.deodev.walletService.walletPinService.repository.WalletPinRepository;
 import com.deodev.walletService.walletService.service.WalletService;
 import jakarta.persistence.EntityManager;
-import jdk.jfr.Description;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

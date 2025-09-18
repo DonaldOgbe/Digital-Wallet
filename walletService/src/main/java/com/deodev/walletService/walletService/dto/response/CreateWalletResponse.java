@@ -6,8 +6,6 @@ import java.util.UUID;
 
 @Builder
 public record CreateWalletResponse(
-        boolean success,
-        String note,
         UUID userId,
         UUID walletId
 ) {

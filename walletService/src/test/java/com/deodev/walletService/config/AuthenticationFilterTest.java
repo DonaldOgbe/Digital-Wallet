@@ -2,8 +2,6 @@ package com.deodev.walletService.config;
 
 import com.deodev.walletService.dto.ApiResponse;
 import com.deodev.walletService.dto.ErrorResponse;
-import com.deodev.walletService.enums.ErrorCode;
-import com.deodev.walletService.walletService.dto.response.CreateWalletResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,7 +48,6 @@ class AuthenticationFilterTest {
 
         ErrorResponse error = body.getData();
         assertThat(error).isNotNull();
-        assertThat(error.errorCode()).isEqualTo(ErrorCode.INVALID_TOKEN);
         assertThat(error.message()).isNotBlank();
     }
 

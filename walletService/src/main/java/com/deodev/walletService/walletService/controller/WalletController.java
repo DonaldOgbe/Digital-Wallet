@@ -1,5 +1,6 @@
 package com.deodev.walletService.walletService.controller;
 
+import com.deodev.walletService.dto.ApiResponse;
 import com.deodev.walletService.walletService.dto.response.CreateWalletResponse;
 import com.deodev.walletService.walletService.service.WalletService;
 import jakarta.validation.Valid;
@@ -13,7 +14,6 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/wallets")
 @RequiredArgsConstructor
-@Validated
 public class WalletController {
 
     private final WalletService walletService;
@@ -26,6 +26,6 @@ public class WalletController {
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(response);
+                .body(ApiResponse.success(HttpStatus.CREATED.value(), response));
     }
 }

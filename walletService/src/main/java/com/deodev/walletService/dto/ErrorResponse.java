@@ -9,9 +9,6 @@ import java.time.LocalDateTime;
 
 @Builder
 public record ErrorResponse(
-        LocalDateTime timestamp,
-        HttpStatus statusCode,
-        ErrorCode errorCode,
         String message,
         String path
 ) {
