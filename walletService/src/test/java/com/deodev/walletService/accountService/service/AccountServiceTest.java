@@ -181,7 +181,6 @@ class AccountServiceTest {
             ApiResponse<GetUserDetailsResponse> userDetails = ApiResponse.success(
                     HttpStatus.OK.value(),
                     GetUserDetailsResponse.builder()
-                            .username("username")
                             .firstName("John")
                             .lastName("Doe")
                             .build());
@@ -189,7 +188,7 @@ class AccountServiceTest {
             when(accountRepository.findByAccountNumber(accountNumber))
                     .thenReturn(Optional.of(account));
 
-            when(userServiceClient.getUser(account.getUserId().toString(), "Bearer " + jwt))
+            when(userServiceClient.getUser(account.getUserId(), "Bearer " + jwt))
                     .thenReturn(userDetails);
 
             // when
@@ -205,7 +204,7 @@ class AccountServiceTest {
             assertThat(response.lastName()).isEqualTo("Doe");
 
             verify(accountRepository).findByAccountNumber(accountNumber);
-            verify(userServiceClient).getUser(account.getUserId().toString(), "Bearer " + jwt);
+            verify(userServiceClient).getUser(account.getUserId(), "Bearer " + jwt);
         }
 
         @Test
@@ -236,7 +235,7 @@ class AccountServiceTest {
             when(accountRepository.findByAccountNumber(accountNumber))
                     .thenReturn(Optional.of(account));
 
-            when(userServiceClient.getUser(account.getUserId().toString(), "Bearer " + jwt))
+            when(userServiceClient.getUser(account.getUserId(), "Bearer " + jwt))
                     .thenThrow(ExternalServiceException.class);
 
             // when + then

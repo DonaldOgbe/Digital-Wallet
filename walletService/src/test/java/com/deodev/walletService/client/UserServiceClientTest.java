@@ -2,18 +2,15 @@ package com.deodev.walletService.client;
 
 import com.deodev.walletService.dto.ApiResponse;
 import com.deodev.walletService.dto.response.GetUserDetailsResponse;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import okhttp3.mockwebserver.MockResponse;
-import okhttp3.mockwebserver.MockWebServer;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.cloud.contract.wiremock.AutoConfigureWireMock;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
+
+import static com.github.tomakehurst.wiremock.client.WireMock.*;
 
 import java.io.IOException;
 import java.util.UUID;
@@ -21,56 +18,47 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.assertj.core.api.Assertions.*;
 
-@SpringBootTest
+@SpringBootTest(
+        properties = {
+                "user.service.url=http://localhost:${wiremock.server.port}"
+        }
+)
+@AutoConfigureWireMock(port = 0)
 @ActiveProfiles("test")
 class UserServiceClientTest {
     @Autowired
     private UserServiceClient userServiceClient;
-    private static MockWebServer mockWebServer;
-    private final ObjectMapper mapper = new ObjectMapper();
-
-    @DynamicPropertySource
-    public static void modifyProperty(DynamicPropertyRegistry registry) {
-        try {
-            mockWebServer = new MockWebServer();
-            mockWebServer.start();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        registry.add("user.service.url", () -> mockWebServer.url("/").toString());
-    }
-
-    @AfterAll
-    static void tearDown() throws IOException {
-        if (mockWebServer != null)
-            mockWebServer.close();
-    }
+    @Autowired
+    private ObjectMapper mapper;
 
     @Test
-    void mockUserServiceClientHttpRequestAndGetResponse() throws JsonProcessingException {
+    void getUser_ShouldReturnUserDetailsResponse() throws IOException {
         // given
-        String userId = UUID.randomUUID().toString();
+        UUID userId = UUID.randomUUID();
 
-        ApiResponse<GetUserDetailsResponse> expectedResponse = ApiResponse.<GetUserDetailsResponse>builder()
-                .statusCode(HttpStatus.OK.value())
-                .data(GetUserDetailsResponse.builder()
-                        .username("username")
-                        .firstName("user")
-                        .lastName("name")
-                        .email("user@gmail.com")
-                        .build())
-                .build();
+        ApiResponse<GetUserDetailsResponse> expectedResponse = ApiResponse.success(
+                HttpStatus.OK.value(),
+                GetUserDetailsResponse.builder()
+                        .firstName("John")
+                        .lastName("Doe")
+                        .email("johndoe@email.com")
+                        .build());
+
+        stubFor(get(urlEqualTo("/api/v1/users/%s".formatted(userId)))
+                .withHeader("Authorization", equalTo("Bearer token"))
+                .willReturn(aResponse()
+                        .withStatus(HttpStatus.OK.value())
+                        .withHeader("Content-Type", "application/json")
+                        .withBody(mapper.writeValueAsString(expectedResponse))));
 
         // when
-        mockWebServer.enqueue(new MockResponse()
-                .setResponseCode(HttpStatus.OK.value())
-                .setHeader("Content-Type", "application/json")
-                .setBody(mapper.writeValueAsString(expectedResponse)));
-
-        ApiResponse<GetUserDetailsResponse> actualResponse = userServiceClient.getUser(userId, "Bearer fake-token");
+        ApiResponse<GetUserDetailsResponse> actualResponse = userServiceClient.getUser(userId, "Bearer token");
 
         // then
-        assertThat(actualResponse).isEqualTo(expectedResponse);
+        assertThat(actualResponse.getStatusCode()).isEqualTo(HttpStatus.OK.value());
+        assertThat(actualResponse.isSuccess()).isTrue();
+        assertThat(actualResponse.getData().firstName()).isEqualTo(expectedResponse.getData().firstName());
+        assertThat(actualResponse.getData().lastName()).isEqualTo(expectedResponse.getData().lastName());
+        assertThat(actualResponse.getData().email()).isEqualTo(expectedResponse.getData().email());
     }
-
 }

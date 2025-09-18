@@ -122,7 +122,6 @@ class AccountControllerTest {
         ApiResponse<GetUserDetailsResponse> mockedUser = ApiResponse.success(
                 HttpStatus.OK.value(),
                 GetUserDetailsResponse.builder()
-                        .username("recipientUsername")
                         .firstName("John")
                         .lastName("Doe")
                         .build());

@@ -83,7 +83,7 @@ public class AccountService {
 
         try {
             ApiResponse<GetUserDetailsResponse> response = userServiceClient.getUser(
-                    recipientAccount.getUserId().toString(),
+                    recipientAccount.getUserId(),
                     "Bearer " + jwt);
 
             GetUserDetailsResponse userDetails = response.getData();
@@ -92,7 +92,6 @@ public class AccountService {
                     .isSuccess(true)
                     .statusCode(HttpStatus.OK)
                     .timestamp(LocalDateTime.now())
-                    .username(userDetails.username())
                     .firstName(userDetails.firstName())
                     .lastName(userDetails.lastName())
                     .build();
