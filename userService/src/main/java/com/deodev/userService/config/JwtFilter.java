@@ -1,10 +1,10 @@
-package com.deodev.walletService.config;
+package com.deodev.userService.config;
 
-import com.deodev.walletService.dto.ApiResponse;
-import com.deodev.walletService.dto.ErrorResponse;
-import com.deodev.walletService.enums.ErrorCode;
-import com.deodev.walletService.exception.TokenValidationException;
-import com.deodev.walletService.util.JwtUtil;
+import com.deodev.userService.dto.response.ApiResponse;
+import com.deodev.userService.dto.response.ErrorResponse;
+import com.deodev.userService.enums.ErrorCode;
+import com.deodev.userService.exception.TokenValidationException;
+import com.deodev.userService.util.JwtUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -18,14 +18,12 @@ import org.springframework.http.MediaType;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-
 import java.io.IOException;
 import java.time.LocalDateTime;
-
 @Component
 @Slf4j
 @RequiredArgsConstructor
-public class AuthenticationFilter extends OncePerRequestFilter {
+public class JwtFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
     private final ObjectMapper objectMapper;
@@ -102,10 +100,10 @@ public class AuthenticationFilter extends OncePerRequestFilter {
     }
 
     void writeErrorResponse(HttpServletResponse response,
-                            HttpStatus status,
-                            ErrorCode errorCode,
-                            String message,
-                            String path) throws IOException {
+                                    HttpStatus status,
+                                    ErrorCode errorCode,
+                                    String message,
+                                    String path) throws IOException {
 
         ErrorResponse data = ErrorResponse.builder()
                 .message(message)
