@@ -1,6 +1,6 @@
-package com.deodev.userService.config;
+package com.deodev.walletService.config;
 
-import com.deodev.userService.util.JwtUtil;
+import com.deodev.walletService.util.JwtUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,7 +12,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -29,7 +29,7 @@ class JwtFilterIntegrationTest {
     @Test
     void request_ShouldReturn401_WhenTokenIsInvalid() throws Exception {
         // when & then
-        mockMvc.perform(get("/api/v1/users/some-id")
+        mockMvc.perform(post("/api/v1/wallets")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer badToken"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
