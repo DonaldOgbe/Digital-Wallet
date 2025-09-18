@@ -1,5 +1,6 @@
 package com.deodev.walletService.walletService.service;
 
+import com.deodev.walletService.exception.ResourceNotFoundException;
 import com.deodev.walletService.walletService.dto.response.CreateWalletResponse;
 import com.deodev.walletService.walletService.model.Wallet;
 import com.deodev.walletService.walletService.repository.WalletRepository;
@@ -24,5 +25,11 @@ public class WalletService {
                 .userId(savedWallet.getUserId())
                 .walletId(savedWallet.getId())
                 .build();
+    }
+
+    public Wallet findByUserId(UUID userId) {
+        return walletRepository.findByUserId(userId).orElseThrow(
+                () -> new ResourceNotFoundException("Wallet not found for userId: %s".formatted(userId))
+        );
     }
 }

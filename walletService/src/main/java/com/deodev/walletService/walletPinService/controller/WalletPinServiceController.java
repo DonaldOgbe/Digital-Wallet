@@ -16,13 +16,12 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/wallets")
-@Validated
+@RequestMapping("/api/v1/wallets/pin")
 public class WalletPinServiceController {
 
     private final WalletPinService walletPinService;
 
-    @PostMapping("/pin")
+    @PostMapping
     @PreAuthorize("hasAuthority('ROLE_USER')")
     public ResponseEntity<?> setNewPin(@Valid
                                        @RequestAttribute("userId") String userId,
@@ -34,7 +33,7 @@ public class WalletPinServiceController {
     }
 
     @PreAuthorize("hasAuthority('ROLE_USER')")
-    @PatchMapping("/pin")
+    @PatchMapping
     public ResponseEntity<?> updatePin(@Valid
                                        @RequestAttribute("userId") String userId,
                                        @RequestBody UpdatePinRequest requestBody) {
@@ -44,7 +43,7 @@ public class WalletPinServiceController {
     }
 
     @PreAuthorize("hasAuthority('ROLE_USER')")
-    @PostMapping("/pin/validate")
+    @PostMapping("/validate")
     public ResponseEntity<?> validatePin(@RequestAttribute("userId") String userId,
                                          @RequestHeader("Wallet-Pin") String pin) {
         ValidateWalletPinResponse response = walletPinService.validatePin(userId, pin);

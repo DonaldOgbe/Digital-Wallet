@@ -8,9 +8,6 @@ import java.util.UUID;
 
 @Builder
 public record CreateWalletPinResponse(
-        boolean isSuccess,
-        HttpStatus statusCode,
-        LocalDateTime timestamp,
         UUID walletId,
         UUID userId,
         UUID walletPinId) {

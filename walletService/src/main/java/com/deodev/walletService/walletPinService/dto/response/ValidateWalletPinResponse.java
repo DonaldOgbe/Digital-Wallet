@@ -7,8 +7,6 @@ import java.time.LocalDateTime;
 
 @Builder
 public record ValidateWalletPinResponse(
-        boolean isValid,
-        HttpStatus statusCode,
-        LocalDateTime timestamp
+        boolean isValid
 ) {
 }
