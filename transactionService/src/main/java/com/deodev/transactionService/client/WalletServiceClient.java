@@ -1,9 +1,9 @@
 package com.deodev.transactionService.client;
 
 import com.deodev.transactionService.dto.ApiResponse;
-import com.deodev.transactionService.dto.ReleaseFundsResponse;
-import com.deodev.transactionService.dto.ReserveFundsResponse;
-import com.deodev.transactionService.dto.TransferFundsResponse;
+import com.deodev.transactionService.dto.response.ReleaseFundsResponse;
+import com.deodev.transactionService.dto.response.ReserveFundsResponse;
+import com.deodev.transactionService.dto.response.TransferFundsResponse;
 import com.deodev.transactionService.dto.request.ReserveFundsRequest;
 import com.deodev.transactionService.dto.request.TransferFundsRequest;
 import com.deodev.transactionService.dto.response.ValidateWalletPinResponse;
@@ -26,7 +26,7 @@ public interface WalletServiceClient {
     ApiResponse<TransferFundsResponse> transferFunds(@RequestHeader("Authorization") String AuthToken,
                                                             @RequestBody TransferFundsRequest request);
 
-    @PostMapping("/api/v1/wallets/accounts/funds/release/{transactionId}")
+    @PostMapping("/api/v1/wallets/accounts/funds/{transactionId}/release")
     ApiResponse<ReleaseFundsResponse> releaseFunds(@RequestHeader("Authorization") String AuthToken,
                                                    @PathVariable String transactionId);
 }
