@@ -9,9 +9,6 @@ import java.util.UUID;
 
 @Builder
 public record CreateAccountResponse(
-        boolean isSuccess,
-        HttpStatus statusCode,
-        LocalDateTime timestamp,
         UUID userId,
         UUID walletId,
         UUID accountId,

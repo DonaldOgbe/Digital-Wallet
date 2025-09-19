@@ -8,9 +8,6 @@ import java.util.UUID;
 
 @Builder
 public record ReleaseFundsResponse(
-        boolean isSuccess,
-        HttpStatus statusCode,
-        LocalDateTime timestamp,
         UUID transactionId,
         UUID fundReservationId
 ) {

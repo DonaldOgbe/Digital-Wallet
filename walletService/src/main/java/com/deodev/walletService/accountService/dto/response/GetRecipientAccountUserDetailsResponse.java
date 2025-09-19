@@ -7,9 +7,6 @@ import java.time.LocalDateTime;
 
 @Builder
 public record GetRecipientAccountUserDetailsResponse(
-        boolean isSuccess,
-        HttpStatus statusCode,
-        LocalDateTime timestamp,
         String username,
         String firstName,
         String lastName

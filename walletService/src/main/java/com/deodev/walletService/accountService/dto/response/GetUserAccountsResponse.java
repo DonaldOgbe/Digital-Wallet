@@ -8,8 +8,6 @@ import java.util.List;
 
 @Builder
 public record GetUserAccountsResponse(
-        boolean isSuccess,
-        HttpStatus statusCode,
         List<Account> accounts
 ) {
 }

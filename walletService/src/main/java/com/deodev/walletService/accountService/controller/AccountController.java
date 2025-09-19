@@ -14,6 +14,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.UUID;
+
 @RestController
 @RequiredArgsConstructor
 @Validated
@@ -34,10 +36,11 @@ public class AccountController {
     }
 
     @PreAuthorize("hasAuthority('ROLE_USER')")
-    @GetMapping("/recipient")
-    public ResponseEntity<?> getRecipientDetails(@RequestParam String accountNumber,
+    @GetMapping("/recipient/{accountNumber}")
+    public ResponseEntity<?> getRecipientDetails(@PathVariable String accountNumber,
+                                                 @RequestParam Currency currency,
                                                  @RequestHeader("Authorization") String jwt) {
-        GetRecipientAccountUserDetailsResponse response = accountService.findAccountAndUserDetails(accountNumber, jwt);
+        GetRecipientAccountUserDetailsResponse response = accountService.findAccountAndUserDetails(accountNumber, currency, jwt);
 
         return ResponseEntity.status(HttpStatus.OK).body(
                 ApiResponse.success(HttpStatus.OK.value(), response));
@@ -66,8 +69,18 @@ public class AccountController {
 
     @PreAuthorize("hasAuthority('ROLE_USER')")
     @PostMapping("/funds/transfer")
-    public ResponseEntity<?> transferFunds(@Valid  @RequestBody TransferFundsRequest request) {
+    public ResponseEntity<?> transferFunds(@Valid @RequestBody TransferFundsRequest request) {
         TransferFundsResponse response = accountService.transferFunds(request);
+
+        return ResponseEntity.status(HttpStatus.OK).body(
+                ApiResponse.success(HttpStatus.OK.value(), response)
+        );
+    }
+
+    @PreAuthorize("hasAuthority('ROLE_USER')")
+    @PostMapping("/funds/{transactionId}/release")
+    public ResponseEntity<?> releaseFunds(@PathVariable UUID transactionId) {
+        ReleaseFundsResponse response = accountService.releaseFunds(transactionId);
 
         return ResponseEntity.status(HttpStatus.OK).body(
                 ApiResponse.success(HttpStatus.OK.value(), response)

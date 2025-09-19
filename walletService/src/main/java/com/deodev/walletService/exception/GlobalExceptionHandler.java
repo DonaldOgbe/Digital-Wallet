@@ -109,6 +109,17 @@ public class GlobalExceptionHandler {
         );
     }
 
+    @ExceptionHandler(PeerToPeerTransferException.class)
+    public ResponseEntity<?> handleP2PTransferException(PeerToPeerTransferException e, HttpServletRequest request) {
+        logger.error(e.getMessage(), e);
+        return handleResponse(
+                HttpStatus.CONFLICT,
+                ErrorCode.P2P_TRANSFER_ERROR,
+                e.getMessage(),
+                request.getRequestURI()
+        );
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<?> handleExceptions(Exception e, HttpServletRequest request) {
 

@@ -15,6 +15,7 @@ import com.deodev.walletService.enums.FundReservationStatus;
 import com.deodev.walletService.exception.*;
 import com.deodev.walletService.walletService.model.Wallet;
 import com.deodev.walletService.walletService.repository.WalletRepository;
+import com.deodev.walletService.walletService.service.WalletService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -33,71 +34,43 @@ import static com.deodev.walletService.util.AccountNumberGenerator.*;
 public class AccountService {
 
     private final AccountRepository accountRepository;
-    private final WalletRepository walletRepository;
-    private final FundReservationRepository fundReservationRepository;
+    private final WalletService walletService;
+    private final FundReservationService fundReservationService;
     private final UserServiceClient userServiceClient;
 
 
     public CreateAccountResponse createAccount(String userId, Currency currency) {
-        UUID userUuid = UUID.fromString(userId);
-        Wallet wallet = walletRepository.findByUserId(userUuid)
-                .orElseThrow(() -> new ResourceNotFoundException("Wallet not found for userId: %s".formatted(userId)));
 
+        Wallet wallet = walletService.findByUserId(UUID.fromString(userId));
         String accountNumber = generateAccountNumber();
-
-        if (accountNumberExists(accountNumber)) {
-            throw new DuplicateAccountNumberException("Account number already exists: %s".formatted(accountNumber));
-        }
+        verifyAccountNumber(accountNumber);
 
         Account account = Account.builder()
                 .walletId(wallet.getId())
-                .userId(userUuid)
+                .userId(wallet.getUserId())
                 .accountNumber(accountNumber)
                 .currency(currency)
                 .build();
 
-        Account saved;
-
-        try {
-            saved = accountRepository.save(account);
-        } catch (DataIntegrityViolationException ex) {
-            throw new DuplicateAccountNumberException("Account number already exists: %s".formatted(account.getAccountNumber()));
-        }
+        Account savedAccount = saveAccount(account);
 
         return CreateAccountResponse.builder()
-                .isSuccess(true)
-                .statusCode(HttpStatus.CREATED)
-                .timestamp(LocalDateTime.now())
-                .userId(userUuid)
-                .walletId(wallet.getId())
-                .accountId(saved.getId())
-                .accountNumber(saved.getAccountNumber())
-                .currency(saved.getCurrency())
+                .userId(savedAccount.getUserId())
+                .walletId(savedAccount.getWalletId())
+                .accountId(savedAccount.getId())
+                .accountNumber(savedAccount.getAccountNumber())
+                .currency(savedAccount.getCurrency())
                 .build();
     }
 
-    //todo find by currency
-    public GetRecipientAccountUserDetailsResponse findAccountAndUserDetails(String accountNumber, String jwt) {
-        Account recipientAccount = accountRepository.findByAccountNumber(accountNumber)
-                .orElseThrow(() -> new ResourceNotFoundException("Account number does not exist"));
+    public GetRecipientAccountUserDetailsResponse findAccountAndUserDetails(String accountNumber, Currency currency, String jwt) {
+        Account recipientAccount = findByAccountNumberAndCurrency(accountNumber, currency);
+        GetUserDetailsResponse userDetails = getUserDetailsFromClient(recipientAccount.getUserId(), jwt);
 
-        try {
-            ApiResponse<GetUserDetailsResponse> response = userServiceClient.getUser(
-                    recipientAccount.getUserId(),
-                    "Bearer " + jwt);
-
-            GetUserDetailsResponse userDetails = response.getData();
-
-            return GetRecipientAccountUserDetailsResponse.builder()
-                    .isSuccess(true)
-                    .statusCode(HttpStatus.OK)
-                    .timestamp(LocalDateTime.now())
-                    .firstName(userDetails.firstName())
-                    .lastName(userDetails.lastName())
-                    .build();
-        } catch (Exception e) {
-            throw new ExternalServiceException(e.getMessage(), e);
-        }
+        return GetRecipientAccountUserDetailsResponse.builder()
+                .firstName(userDetails.firstName())
+                .lastName(userDetails.lastName())
+                .build();
     }
 
     public GetUserAccountsResponse getUserAccounts(String userId) {
@@ -105,105 +78,44 @@ public class AccountService {
                 .orElseThrow(() -> new ResourceNotFoundException("Account(s) not found under user ID: " + userId));
 
         return GetUserAccountsResponse.builder()
-                .isSuccess(true)
-                .statusCode(HttpStatus.OK)
                 .accounts(accounts)
                 .build();
     }
 
     public ReserveFundsResponse reserveFunds(ReserveFundsRequest request, String userId) {
-        Account account = accountRepository.findByUserIdAndAccountNumber(UUID.fromString(userId), request.accountNumber())
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Account not found for userId: %s".formatted(userId)
-                ));
+        Account account = hasSufficientFunds(UUID.fromString(userId), request);
 
-        if (account.getBalance() < request.amount()) {
-            throw new InsufficientBalanceException(
-                    "Insufficient funds for userId: %s".formatted(userId)
-            );
-        }
-
-        FundReservation fundReservation = FundReservation.builder()
-                .accountNumber(account.getAccountNumber())
-                .transactionId(request.transactionId())
-                .amount(request.amount())
-                .build();
-
-        FundReservation savedFundReservation;
-
-        savedFundReservation = fundReservationRepository.save(fundReservation);
+        FundReservation fundReservation = fundReservationService.createNewReservation(
+                account.getAccountNumber(), request.transactionId(), request.amount());
 
         return ReserveFundsResponse.builder()
-                .isSuccess(true)
-                .statusCode(HttpStatus.OK)
-                .timestamp(LocalDateTime.now())
-                .fundReservationId(savedFundReservation.getId())
+                .fundReservationId(fundReservation.getId())
                 .build();
     }
 
     public TransferFundsResponse transferFunds(TransferFundsRequest request) {
-        FundReservation reservation = fundReservationRepository.findByTransactionId(request.transactionId())
-                .orElseThrow(() -> new ResourceNotFoundException("Fund reservation not found"));
+        FundReservation reservation = fundReservationService.findByTransactionId(request.transactionId());
+        isReservationValidForTransfer(reservation);
 
+        debitSender(reservation.getAccountNumber(), reservation.getAmount());
+        creditReceiver(request.accountNumber(), reservation.getAmount());
 
-        if (reservation.getExpiredAt() != null && reservation.getExpiredAt().isBefore(LocalDateTime.now())) {
-            throw new FundReservationException("Fund reservation has expired");
-        }
-
-        if (reservation.getStatus() != FundReservationStatus.ACTIVE) {
-            throw new FundReservationException("Fund reservation is not active");
-        }
-
-        try {
-            debitBalance(reservation.getAccountNumber(), reservation.getAmount());
-        } catch (Exception e) {
-            throw new FundReservationException(
-                    "Failed to debit sender account: " + reservation.getAccountNumber(), e
-            );
-        }
-
-        try {
-            creditBalance(request.accountNumber(), reservation.getAmount());
-        } catch (Exception e) {
-            throw new FundReservationException(
-                    "Failed to credit receiver account: " + request.accountNumber(), e
-            );
-        }
-
-        reservation.setStatus(FundReservationStatus.USED);
-        reservation.setUsedAt(LocalDateTime.now());
-        fundReservationRepository.save(reservation);
+        fundReservationService.setUsedReservation(reservation);
 
         return TransferFundsResponse.builder()
-                .isSuccess(true)
-                .statusCode(HttpStatus.OK)
-                .timestamp(LocalDateTime.now())
                 .transactionId(reservation.getTransactionId())
                 .fundReservationId(reservation.getId())
                 .build();
     }
 
     public ReleaseFundsResponse releaseFunds(UUID transactionId) {
-        FundReservation reservation = fundReservationRepository.findByTransactionId(transactionId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Reservation not found for transactionId: " + transactionId
-                ));
+        FundReservation reservation = fundReservationService.findByTransactionId(transactionId);
 
-        if (reservation.getStatus() == FundReservationStatus.USED) {
-            throw new FundReservationException("Reservation already used");
-        }
-        if (reservation.getStatus() == FundReservationStatus.RELEASED) {
-            throw new FundReservationException("Reservation already released");
-        }
+        isReservationValidForRelease(reservation);
 
-        reservation.setStatus(FundReservationStatus.RELEASED);
-        reservation.setReleasedAt(LocalDateTime.now());
-        fundReservationRepository.save(reservation);
+        fundReservationService.setReleasedReservation(reservation);
 
         return ReleaseFundsResponse.builder()
-                .isSuccess(true)
-                .statusCode(HttpStatus.OK)
-                .timestamp(LocalDateTime.now())
                 .transactionId(reservation.getTransactionId())
                 .fundReservationId(reservation.getId())
                 .build();
@@ -225,7 +137,85 @@ public class AccountService {
         accountRepository.save(account);
     }
 
-    private boolean accountNumberExists(String accountNumber) {
-        return accountRepository.existsByAccountNumber(accountNumber);
+    void debitSender(String sender, Long amount) {
+        try {
+            debitBalance(sender, amount);
+        } catch (Exception e) {
+            throw new PeerToPeerTransferException("Failed to debit sender account: " + sender, e);
+        }
     }
+
+    void creditReceiver(String receiver, Long amount) {
+        try {
+            creditBalance(receiver, amount);
+        } catch (Exception e) {
+            throw new PeerToPeerTransferException("Failed to credit receiver account: " + receiver, e);
+        }
+    }
+
+    void verifyAccountNumber(String accountNumber) {
+        if (accountRepository.existsByAccountNumber(accountNumber)) {
+            throw new DuplicateAccountNumberException("Account number already exists: %s".formatted(accountNumber));
+        }
+    }
+
+    Account saveAccount(Account account) {
+        try {
+            return accountRepository.save(account);
+        } catch (DataIntegrityViolationException ex) {
+            throw new DuplicateAccountNumberException("Account number already exists: %s".formatted(account.getAccountNumber()));
+        }
+    }
+
+    Account findByAccountNumberAndCurrency(String accountNumber, Currency currency) {
+        return accountRepository.findByAccountNumberAndCurrency(accountNumber, currency)
+                .orElseThrow(() -> new ResourceNotFoundException("Account number does not exist"));
+    }
+
+    GetUserDetailsResponse getUserDetailsFromClient(UUID userId, String jwt) {
+        try {
+            ApiResponse<GetUserDetailsResponse> response = userServiceClient.getUser(
+                    userId,
+                    "Bearer " + jwt);
+
+            return response.getData();
+        } catch (Exception e) {
+            throw new ExternalServiceException(e.getMessage(), e);
+        }
+    }
+
+    Account hasSufficientFunds(UUID userId, ReserveFundsRequest request) {
+        Account account = accountRepository.findByUserIdAndAccountNumber(userId, request.accountNumber())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Account not found for userId: %s".formatted(userId)
+                ));
+
+        if (account.getBalance() < request.amount()) {
+            throw new InsufficientBalanceException(
+                    "Insufficient funds for userId: %s".formatted(userId)
+            );
+        }
+
+        return account;
+    }
+
+    void isReservationValidForTransfer(FundReservation reservation) {
+        if (reservation.getExpiredAt() != null && reservation.getExpiredAt().isBefore(LocalDateTime.now())) {
+            throw new FundReservationException("Fund reservation has expired");
+        }
+
+        if (reservation.getStatus() != FundReservationStatus.ACTIVE) {
+            throw new FundReservationException("Fund reservation is not active");
+        }
+    }
+
+    void isReservationValidForRelease(FundReservation reservation) {
+        if (reservation.getStatus() == FundReservationStatus.USED) {
+            throw new FundReservationException("Reservation already used");
+        }
+        if (reservation.getStatus() == FundReservationStatus.RELEASED) {
+            throw new FundReservationException("Reservation already released");
+        }
+    }
+
 }
