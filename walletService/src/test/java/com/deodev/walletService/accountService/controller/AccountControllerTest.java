@@ -12,6 +12,8 @@ import com.deodev.walletService.dto.response.GetUserDetailsResponse;
 import com.deodev.walletService.enums.Currency;
 import com.deodev.walletService.enums.FundReservationStatus;
 import com.deodev.walletService.util.JwtUtil;
+import com.deodev.walletService.walletPinService.model.WalletPin;
+import com.deodev.walletService.walletPinService.repository.WalletPinRepository;
 import com.deodev.walletService.walletService.model.Wallet;
 import com.deodev.walletService.walletService.repository.WalletRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -23,6 +25,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -63,8 +66,15 @@ class AccountControllerTest {
     @Autowired
     private EntityManager entityManager;
 
+    @Autowired
+    private WalletPinRepository walletPinRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
     @MockBean
     private UserServiceClient userServiceClient;
+
 
     private UUID userId;
     private UUID walletId;
@@ -156,9 +166,17 @@ class AccountControllerTest {
     }
 
     @Test
-    void reserveFunds_ShouldReturnReservationId_WhenSufficientFunds() throws Exception {
+    void validateAndReserveFunds_ShouldReturnReservationId_WhenSufficientFunds() throws Exception {
         // given
         jwt = jwtUtil.generateToken(claims, "johndoe@email.com");
+
+        walletPinRepository.save(WalletPin.builder()
+                .walletId(UUID.randomUUID())
+                .userId(userId)
+                .pin(passwordEncoder.encode("1234"))
+                .build());
+        String pin = "1234";
+
         Account account = Account.builder()
                 .walletId(walletId).userId(userId)
                 .accountNumber(accountNumber).currency(Currency.USD)
@@ -167,7 +185,7 @@ class AccountControllerTest {
 
         UUID transactionId = UUID.randomUUID();
         ReserveFundsRequest request = ReserveFundsRequest.builder()
-                .accountNumber(accountNumber).transactionId(transactionId).amount(500L).build();
+                .pin(pin).accountNumber(accountNumber).transactionId(transactionId).amount(500L).build();
 
         // when & then
         mockMvc.perform(post("/api/v1/wallets/accounts/funds/reserve")

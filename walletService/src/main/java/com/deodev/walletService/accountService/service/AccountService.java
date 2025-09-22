@@ -6,20 +6,18 @@ import com.deodev.walletService.accountService.dto.request.TransferFundsRequest;
 import com.deodev.walletService.accountService.model.Account;
 import com.deodev.walletService.accountService.model.FundReservation;
 import com.deodev.walletService.accountService.repository.AccountRepository;
-import com.deodev.walletService.accountService.repository.FundReservationRepository;
 import com.deodev.walletService.client.UserServiceClient;
 import com.deodev.walletService.dto.ApiResponse;
 import com.deodev.walletService.dto.response.GetUserDetailsResponse;
 import com.deodev.walletService.enums.Currency;
 import com.deodev.walletService.enums.FundReservationStatus;
 import com.deodev.walletService.exception.*;
+import com.deodev.walletService.walletPinService.service.WalletPinService;
 import com.deodev.walletService.walletService.model.Wallet;
-import com.deodev.walletService.walletService.repository.WalletRepository;
 import com.deodev.walletService.walletService.service.WalletService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -37,6 +35,7 @@ public class AccountService {
     private final WalletService walletService;
     private final FundReservationService fundReservationService;
     private final UserServiceClient userServiceClient;
+    private final WalletPinService walletPinService;
 
 
     public CreateAccountResponse createAccount(String userId, Currency currency) {
@@ -82,7 +81,9 @@ public class AccountService {
                 .build();
     }
 
-    public ReserveFundsResponse reserveFunds(ReserveFundsRequest request, String userId) {
+    public ReserveFundsResponse validateAndReserveFunds(ReserveFundsRequest request, String userId) {
+        walletPinService.validatePin(userId, request.pin());
+
         Account account = hasSufficientFunds(UUID.fromString(userId), request);
 
         FundReservation fundReservation = fundReservationService.createNewReservation(

@@ -60,7 +60,7 @@ public class AccountController {
     @PostMapping("/funds/reserve")
     public ResponseEntity<?> reserveFunds(@Valid @RequestBody ReserveFundsRequest request,
                                           @RequestAttribute("userId") String userId) {
-        ReserveFundsResponse response = accountService.reserveFunds(request, userId);
+        ReserveFundsResponse response = accountService.validateAndReserveFunds(request, userId);
 
         return ResponseEntity.status(HttpStatus.OK).body(
                 ApiResponse.success(HttpStatus.OK.value(), response)

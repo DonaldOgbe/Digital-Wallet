@@ -42,15 +42,4 @@ public class WalletPinServiceController {
                 ApiResponse.success(HttpStatus.OK.value(), response));
     }
 
-    @PreAuthorize("hasAuthority('ROLE_USER')")
-    @PostMapping("/validate")
-    public ResponseEntity<?> validatePin(@RequestAttribute("userId") String userId,
-                                         @RequestHeader("Wallet-Pin") String pin) {
-        ValidateWalletPinResponse response = walletPinService.validatePin(userId, pin);
-
-        return ResponseEntity.status(HttpStatus.OK).body(
-                ApiResponse.success(HttpStatus.OK.value(), response)
-        );
-    }
-
 }

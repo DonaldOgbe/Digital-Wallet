@@ -9,18 +9,14 @@ import com.deodev.walletService.walletPinService.dto.response.ValidateWalletPinR
 import com.deodev.walletService.walletPinService.model.WalletPin;
 import com.deodev.walletService.walletPinService.repository.WalletPinRepository;
 import com.deodev.walletService.walletService.model.Wallet;
-import com.deodev.walletService.walletService.repository.WalletRepository;
 import com.deodev.walletService.walletService.service.WalletService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
-
-import static com.deodev.walletService.common.ErrorCodes.*;
 
 @Slf4j
 @Service
@@ -73,12 +69,12 @@ public class WalletPinService {
                 .build();
     }
 
-    public ValidateWalletPinResponse validatePin(String userId, String pin) {
-            verifyPin(UUID.fromString(userId), pin, null);
+    public void validatePin(String userId, String pin) {
+        verifyPin(UUID.fromString(userId), pin, null);
 
-            return ValidateWalletPinResponse.builder()
-                    .isValid(true)
-                    .build();
+        ValidateWalletPinResponse.builder()
+                .isValid(true)
+                .build();
     }
 
     WalletPin verifyPin(UUID userId, String pin, String errorMessage) {

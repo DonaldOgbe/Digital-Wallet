@@ -105,22 +105,4 @@ class WalletPinServiceControllerTest {
                 .andExpect(jsonPath("$.data.walletPinId").isNotEmpty());
     }
 
-    @Test
-    void validatePin_ShouldReturn200_WhenPinIsCorrect() throws Exception {
-        // given
-        walletPinRepository.save(WalletPin.builder()
-                .walletId(UUID.randomUUID())
-                .userId(UUID.fromString(userId))
-                .pin(passwordEncoder.encode("1234"))
-                .build());
-        String pin = "1234";
-
-        // when & then
-        mockMvc.perform(post("/api/v1/wallets/pin/validate")
-                        .header("Authorization", "Bearer " + jwt)
-                        .header("Wallet-Pin", pin))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.isValid").value(true));
-    }
-
 }
