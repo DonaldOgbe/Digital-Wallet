@@ -10,8 +10,7 @@ import java.util.UUID;
 @Builder
 public record UserRegisteredResponse(
         UUID userId,
-        UUID walletId,
         String email,
-        UserStatus status
+        String token
 ) {
 }

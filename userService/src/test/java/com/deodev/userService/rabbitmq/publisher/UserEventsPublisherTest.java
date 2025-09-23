@@ -39,7 +39,7 @@ class UserEventsPublisherTest {
         // then
         verify(rabbitTemplate).convertAndSend(
                 eq(USER_EXCHANGE),
-                eq(USER_REGISTERED_ROUTING_KEY),
+                eq(USER_CREATED),
                 captor.capture()
         );
 

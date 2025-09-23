@@ -36,11 +36,19 @@ public class AuthService {
 
         userEventsPublisher.publishUserRegistered(savedUser);
 
+        UserDetails userDetails = authenticate(request.email(), request.password());
+
+        List<String> authorities = getAuthorities(userDetails);
+
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("authorities", authorities);
+
+        String jwt = jwtUtil.generateToken(claims, userDetails.getUsername());
+
         return UserRegisteredResponse.builder()
                 .userId(savedUser.getId())
-                .walletId(null)
                 .email(savedUser.getEmail())
-                .status(savedUser.getStatus())
+                .token(jwt)
                 .build();
     }
 
@@ -48,9 +56,7 @@ public class AuthService {
 
         UserDetails userDetails = authenticate(request.email(), request.password());
 
-        List<String> authorities = userDetails.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority)
-                .toList();
+        List<String> authorities = getAuthorities(userDetails);
 
         Map<String, Object> claims = new HashMap<>();
         claims.put("authorities", authorities);
@@ -64,11 +70,19 @@ public class AuthService {
                 .build();
     }
 
-    public UserDetails authenticate(String email, String password) {
+    UserDetails authenticate(String email, String password) {
         Authentication loginAuthentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(email, password));
 
         return (UserDetails) loginAuthentication.getPrincipal();
     }
+
+    List<String> getAuthorities(UserDetails userDetails) {
+        return userDetails.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .toList();
+    }
+
+
 
 }

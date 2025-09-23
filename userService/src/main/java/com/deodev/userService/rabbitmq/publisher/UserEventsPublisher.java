@@ -18,6 +18,6 @@ public class UserEventsPublisher {
                 .userid(user.getId())
                 .build();
 
-        rabbitTemplate.convertAndSend(USER_EXCHANGE, USER_REGISTERED_ROUTING_KEY, event);
+        rabbitTemplate.convertAndSend(USER_EXCHANGE, USER_CREATED, event);
     }
 }

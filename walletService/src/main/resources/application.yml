@@ -2,7 +2,7 @@ spring:
   application:
     name: wallet-service
   datasource:
-    url: ${WALLET_DB_URL:jdbc:postgresql://localhost:5432/wallets_db}
+    url: ${USER_DB_URL:jdbc:postgresql://localhost:5433/users_db}
     username: ${POSTGRES_USER:postgres}
     password: ${POSTGRES_PASSWORD:password}
   jpa:
@@ -12,6 +12,11 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: admin
+    password: admin123
 
 jwt:
   secret: ${JWT_SECRET:cb9AvXO/RFYa78qgN4G3TCxZ0gxsqgPcCmF9Oq4G9P7V5koI9LW1YaoxrsNhs7rP}

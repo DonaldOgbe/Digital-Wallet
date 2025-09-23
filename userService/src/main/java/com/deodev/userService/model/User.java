@@ -45,7 +45,7 @@ public class User {
     private LocalDateTime createdAt;
 
     @Enumerated(EnumType.STRING)
-    private UserStatus status = UserStatus.ACTIVE;
+    private UserStatus status = UserStatus.INACTIVE;
 
     @PrePersist
     protected void onCreate() {
