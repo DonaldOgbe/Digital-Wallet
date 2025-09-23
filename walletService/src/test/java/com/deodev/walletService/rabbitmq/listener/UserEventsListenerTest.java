@@ -11,7 +11,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static com.deodev.walletService.rabbitmq.constants.keys.*;
@@ -32,24 +31,24 @@ class UserEventsListenerTest {
     }
 
     @Test
-    void handleUserRegistrationEvents_ShouldCallCreateWallet_WhenUserCreatedEvent() {
+    void handleUserLifecycleEvents_ShouldCallCreateWallet_WhenUserCreatedEvent() {
         // given
         UserRegisteredEvent event = new UserRegisteredEvent(userId);
 
         // when
-        userEventsListener.handleUserRegistrationEvents(event, USER_CREATED);
+        userEventsListener.handleUserLifecycleEvents(event, USER_CREATED);
 
         // then
         verify(walletService).createWallet(userId.toString());
     }
 
     @Test
-    void handleUserRegistrationEvents_ShouldNotCallWalletService_WhenRoutingKeyUnknown() {
+    void handleUserLifecycleEvents_ShouldNotCallWalletService_WhenRoutingKeyUnknown() {
         // given
         UserRegisteredEvent event = new UserRegisteredEvent(userId);
 
         // when
-        userEventsListener.handleUserRegistrationEvents(event, "UNKNOWN_KEY");
+        userEventsListener.handleUserLifecycleEvents(event, "UNKNOWN_KEY");
 
         // then
         verifyNoInteractions(walletService);

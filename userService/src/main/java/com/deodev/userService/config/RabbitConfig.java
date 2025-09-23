@@ -1,5 +1,8 @@
 package com.deodev.userService.config;
 
+import org.springframework.amqp.core.Binding;
+import org.springframework.amqp.core.BindingBuilder;
+import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.annotation.EnableRabbit;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
@@ -8,6 +11,9 @@ import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import javax.management.Query;
+
 import static com.deodev.userService.rabbitmq.constants.keys.*;
 
 @Configuration
@@ -30,5 +36,25 @@ public class RabbitConfig {
     @Bean
     public TopicExchange userExchange() {
         return new TopicExchange(USER_EXCHANGE);
+    }
+
+    // WALLET EVENTS
+
+    @Bean
+    public Queue userWalletEventsQueue() {
+        return new Queue(USER_WALLET_QUEUE, true);
+    }
+
+    @Bean
+    public TopicExchange walletEventsExchange() {
+        return new TopicExchange(WALLET_EXCHANGE);
+    }
+
+    @Bean
+    public Binding userWalletEventsBinding(Queue userWalletEventsQueue,
+                                           TopicExchange walletEventsExchange) {
+        return BindingBuilder.bind(userWalletEventsQueue)
+                .to(walletEventsExchange)
+                .with(WALLET_WILDCARD_KEY);
     }
 }

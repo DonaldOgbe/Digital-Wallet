@@ -68,7 +68,7 @@ public class RabbitMQConfig {
                                            TopicExchange userEventsExchange) {
         return BindingBuilder.bind(walletUserEventsQueue)
                 .to(userEventsExchange)
-                .with(USER_REGISTRATION_WILDCARD);
+                .with(USER_WILDCARD_KEY);
     }
 
 

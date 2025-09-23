@@ -17,7 +17,7 @@ public class UserEventsListener {
     private final WalletService walletService;
 
     @RabbitListener(queues = WALLET_USER_QUEUE)
-    public void handleUserRegistrationEvents(
+    public void handleUserLifecycleEvents(
             @Payload UserRegisteredEvent event,
             @Header("amqp_receivedRoutingKey") String routingKey
     ) {

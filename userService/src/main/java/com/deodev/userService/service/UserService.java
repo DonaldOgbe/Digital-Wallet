@@ -2,10 +2,12 @@ package com.deodev.userService.service;
 
 import com.deodev.userService.dto.request.UserRegistrationRequest;
 import com.deodev.userService.dto.response.GetUserDetailsResponse;
+import com.deodev.userService.exception.ResourceNotFoundException;
 import com.deodev.userService.exception.UserAlreadyExistsException;
 import com.deodev.userService.model.User;
 import com.deodev.userService.repository.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -48,5 +50,14 @@ public class UserService {
         if (userRepository.existsByEmail(email)) {
             throw new UserAlreadyExistsException("Email Already Exists");
         }
+    }
+
+    @Transactional
+    public void markUserVerified(UUID userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id " + userId));
+
+        user.setVerified(true);
+        userRepository.save(user);
     }
 }

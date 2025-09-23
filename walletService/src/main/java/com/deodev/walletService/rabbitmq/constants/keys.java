@@ -14,7 +14,7 @@ public class keys {
     // USER EVENTS
     public static final String WALLET_USER_QUEUE = "wallet.user-events";
     public static final String USER_EXCHANGE = "user.events";
-    public static final String USER_REGISTRATION_WILDCARD = "user.lifecycle.*";
+    public static final String USER_WILDCARD_KEY = "user.lifecycle.*";
 
     // USER ROUTING KEYS
     public static final String USER_CREATED = "user.lifecycle.user-created";

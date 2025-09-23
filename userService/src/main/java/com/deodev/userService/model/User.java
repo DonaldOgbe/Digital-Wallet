@@ -47,6 +47,9 @@ public class User {
     @Enumerated(EnumType.STRING)
     private UserStatus status = UserStatus.INACTIVE;
 
+    @Column(nullable = false)
+    private boolean verified = false;
+
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
