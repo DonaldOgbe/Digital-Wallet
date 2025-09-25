@@ -1,6 +1,8 @@
 package com.deodev.transactionService.client;
 
 import com.deodev.transactionService.dto.ApiResponse;
+import com.deodev.transactionService.dto.request.ReserveFundsRequest;
+import com.deodev.transactionService.dto.response.ReserveFundsResponse;
 import com.deodev.transactionService.dto.response.ValidateWalletPinResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -9,6 +11,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cloud.contract.wiremock.AutoConfigureWireMock;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
+
+import java.util.UUID;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.assertj.core.api.Assertions.*;
@@ -26,10 +30,11 @@ class WalletServiceClientTest {
     @Test
     void shouldSendTransferFundsRequestAndParseResponse() throws Exception {
         // given
-        ApiResponse<ValidateWalletPinResponse> expectedResponse = ApiResponse.success(
-                HttpStatus.OK.value(), ValidateWalletPinResponse.builder().isValid(true).build());
+        UUID reservationId = UUID.randomUUID();
+        ApiResponse<ReserveFundsResponse> expectedResponse = ApiResponse.success(
+                HttpStatus.OK.value(), ReserveFundsResponse.builder().fundReservationId(reservationId).build());
 
-        stubFor(post(urlEqualTo("/api/v1/wallets/pin/validate"))
+        stubFor(post(urlEqualTo("/api/v1/wallets/accounts/funds/reserve"))
                 .withHeader("Authorization", equalTo("Bearer token"))
                 .withHeader("Wallet-Pin", equalTo("1234"))
                 .willReturn(aResponse()

@@ -45,14 +45,13 @@ class UserServiceClientTest {
                         .build());
 
         stubFor(get(urlEqualTo("/api/v1/users/%s".formatted(userId)))
-                .withHeader("Authorization", equalTo("Bearer token"))
                 .willReturn(aResponse()
                         .withStatus(HttpStatus.OK.value())
                         .withHeader("Content-Type", "application/json")
                         .withBody(mapper.writeValueAsString(expectedResponse))));
 
         // when
-        ApiResponse<GetUserDetailsResponse> actualResponse = userServiceClient.getUser(userId, "Bearer token");
+        ApiResponse<GetUserDetailsResponse> actualResponse = userServiceClient.getUser(userId);
 
         // then
         assertThat(actualResponse.getStatusCode()).isEqualTo(HttpStatus.OK.value());

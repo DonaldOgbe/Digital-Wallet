@@ -4,12 +4,10 @@ import com.deodev.walletService.dto.ApiResponse;
 import com.deodev.walletService.dto.ErrorResponse;
 import com.deodev.walletService.enums.ErrorCode;
 import jakarta.servlet.http.HttpServletRequest;
-import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -43,27 +41,6 @@ public class GlobalExceptionHandler {
         );
     }
 
-    @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<?> handleAuthorizationDeniedExceptions(AccessDeniedException e, HttpServletRequest request) {
-        logger.error("Access Denied", e);
-        return handleResponse(
-                HttpStatus.FORBIDDEN,
-                ErrorCode.UNAUTHORIZED,
-                "Access Denied",
-                request.getRequestURI()
-        );
-    }
-
-    @ExceptionHandler(TokenValidationException.class)
-    public ResponseEntity<?> handleTokenValidationExceptions(TokenValidationException e, HttpServletRequest request) {
-        logger.error(e.getMessage(), e);
-        return handleResponse(
-                HttpStatus.UNAUTHORIZED,
-                ErrorCode.INVALID_TOKEN,
-                e.getMessage(),
-                request.getRequestURI()
-        );
-    }
 
     @ExceptionHandler(PinMismatchException.class)
     public ResponseEntity<?> handlePinMismatchException(PinMismatchException e, HttpServletRequest request) {

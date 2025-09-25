@@ -62,9 +62,9 @@ public class AccountService {
                 .build();
     }
 
-    public GetRecipientAccountUserDetailsResponse findAccountAndUserDetails(String accountNumber, Currency currency, String jwt) {
+    public GetRecipientAccountUserDetailsResponse findAccountAndUserDetails(String accountNumber, Currency currency) {
         Account recipientAccount = findByAccountNumberAndCurrency(accountNumber, currency);
-        GetUserDetailsResponse userDetails = getUserDetailsFromClient(recipientAccount.getUserId(), jwt);
+        GetUserDetailsResponse userDetails = getUserDetailsFromClient(recipientAccount.getUserId());
 
         return GetRecipientAccountUserDetailsResponse.builder()
                 .firstName(userDetails.firstName())
@@ -173,11 +173,10 @@ public class AccountService {
                 .orElseThrow(() -> new ResourceNotFoundException("Account number does not exist"));
     }
 
-    GetUserDetailsResponse getUserDetailsFromClient(UUID userId, String jwt) {
+    GetUserDetailsResponse getUserDetailsFromClient(UUID userId) {
         try {
             ApiResponse<GetUserDetailsResponse> response = userServiceClient.getUser(
-                    userId,
-                    "Bearer " + jwt);
+                    userId);
 
             return response.getData();
         } catch (Exception e) {

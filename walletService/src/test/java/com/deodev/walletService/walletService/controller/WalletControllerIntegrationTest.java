@@ -1,7 +1,6 @@
 package com.deodev.walletService.walletService.controller;
 
 import com.deodev.walletService.rabbitmq.publisher.WalletEventsPublisher;
-import com.deodev.walletService.util.JwtUtil;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,8 +25,6 @@ class WalletControllerIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
-    @Autowired
-    private JwtUtil jwtUtil;
 
     @MockBean
     private WalletEventsPublisher walletEventsPublisher;
@@ -37,14 +34,11 @@ class WalletControllerIntegrationTest {
         // given
         UUID userId = UUID.randomUUID();
 
-        String jwt = jwtUtil.generateToken(Map.of("userId", userId,
-                "authorities", List.of("ROLE_USER")), "test@example.com");
-
         ArgumentCaptor<UUID> captor = ArgumentCaptor.forClass(UUID.class);
 
         // when & then
         mockMvc.perform(post("/api/v1/wallets")
-                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwt))
+                        .header("X-User-Id", userId))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.statusCode").value(HttpStatus.CREATED.value()))

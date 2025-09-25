@@ -3,12 +3,9 @@ package com.deodev.walletService.walletService.controller;
 import com.deodev.walletService.dto.ApiResponse;
 import com.deodev.walletService.walletService.dto.response.CreateWalletResponse;
 import com.deodev.walletService.walletService.service.WalletService;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -19,8 +16,7 @@ public class WalletController {
     private final WalletService walletService;
 
     @PostMapping
-    @PreAuthorize("hasAuthority('ROLE_USER')")
-    public ResponseEntity<?> createWallet(@RequestAttribute("userId") String userId) {
+    public ResponseEntity<?> createWallet(@RequestHeader("X-User-Id") String userId) {
 
         CreateWalletResponse response = walletService.createWallet(userId);
 

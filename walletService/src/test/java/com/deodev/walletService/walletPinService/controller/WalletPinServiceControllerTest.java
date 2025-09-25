@@ -1,6 +1,5 @@
 package com.deodev.walletService.walletPinService.controller;
 
-import com.deodev.walletService.util.JwtUtil;
 import com.deodev.walletService.walletPinService.dto.request.SetPinRequest;
 import com.deodev.walletService.walletPinService.dto.request.UpdatePinRequest;
 import com.deodev.walletService.walletPinService.model.WalletPin;
@@ -18,9 +17,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -38,9 +34,6 @@ class WalletPinServiceControllerTest {
     private ObjectMapper objectMapper;
 
     @Autowired
-    private JwtUtil jwtUtil;
-
-    @Autowired
     private WalletRepository walletRepository;
 
     @Autowired
@@ -49,26 +42,19 @@ class WalletPinServiceControllerTest {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    private String jwt;
-    private String userId;
+    private UUID userId;
 
     @BeforeEach
     void setUp() {
         walletPinRepository.deleteAll();
-        userId = UUID.randomUUID().toString();
-
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("userId", userId);
-        claims.put("authorities", List.of("ROLE_USER"));
-
-        jwt = jwtUtil.generateToken(claims, "test@example.com");
+        userId = UUID.randomUUID();
     }
 
     @Test
     void setNewPin_ShouldReturn201_WhenRequestIsValid() throws Exception {
         // given
         walletRepository.save(Wallet.builder()
-                .userId(UUID.fromString(userId))
+                .userId(userId)
                 .build());
 
         SetPinRequest request = new SetPinRequest("1234", "1234");
@@ -76,10 +62,10 @@ class WalletPinServiceControllerTest {
         // when & then
         mockMvc.perform(post("/api/v1/wallets/pin")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .header("Authorization", "Bearer " + jwt)
+                        .header("X-User-Id", userId)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.data.userId").value(userId))
+                .andExpect(jsonPath("$.data.userId").value(String.valueOf(userId)))
                 .andExpect(jsonPath("$.data.walletId").isNotEmpty())
                 .andExpect(jsonPath("$.data.walletPinId").isNotEmpty());
     }
@@ -89,7 +75,7 @@ class WalletPinServiceControllerTest {
         // given
         walletPinRepository.save(WalletPin.builder()
                 .walletId(UUID.randomUUID())
-                .userId(UUID.fromString(userId))
+                .userId(userId)
                 .pin(passwordEncoder.encode("1234"))
                 .build());
 
@@ -98,10 +84,10 @@ class WalletPinServiceControllerTest {
         // when & then
         mockMvc.perform(patch("/api/v1/wallets/pin")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .header("Authorization", "Bearer " + jwt)
+                        .header("X-User-Id", userId)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.userId").value(userId))
+                .andExpect(jsonPath("$.data.userId").value(String.valueOf(userId)))
                 .andExpect(jsonPath("$.data.walletPinId").isNotEmpty());
     }
 

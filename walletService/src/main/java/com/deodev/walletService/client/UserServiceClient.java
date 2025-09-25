@@ -15,6 +15,5 @@ import java.util.UUID;
 )
 public interface UserServiceClient {
     @GetMapping("/api/v1/users/{userId}")
-    ApiResponse<GetUserDetailsResponse> getUser(@PathVariable UUID userId,
-                                               @RequestHeader("Authorization") String AuthToken);
+    ApiResponse<GetUserDetailsResponse> getUser(@PathVariable UUID userId);
 }

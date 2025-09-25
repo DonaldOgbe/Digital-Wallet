@@ -14,17 +14,10 @@ import org.springframework.web.bind.annotation.*;
         name = "wallet-service",
         url = "${wallet.service.url}")
 public interface WalletServiceClient {
-    @PostMapping("/api/v1/wallets/pin/validate")
-    ApiResponse<ValidateWalletPinResponse> validatePin(@RequestHeader("Authorization") String AuthToken,
-                                                              @RequestHeader("Wallet-Pin") String pin);
-
     @PostMapping("/api/v1/wallets/accounts/funds/reserve")
     ApiResponse<ReserveFundsResponse> reserveFunds(@RequestHeader("Authorization") String AuthToken,
                                                           @RequestBody ReserveFundsRequest request);
 
-    @PostMapping("/api/v1/wallets/accounts/funds/transfer")
-    ApiResponse<TransferFundsResponse> transferFunds(@RequestHeader("Authorization") String AuthToken,
-                                                            @RequestBody TransferFundsRequest request);
 
     @PostMapping("/api/v1/wallets/accounts/funds/{transactionId}/release")
     ApiResponse<ReleaseFundsResponse> releaseFunds(@RequestHeader("Authorization") String AuthToken,

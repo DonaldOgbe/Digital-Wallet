@@ -11,7 +11,6 @@ import com.deodev.walletService.dto.ApiResponse;
 import com.deodev.walletService.dto.response.GetUserDetailsResponse;
 import com.deodev.walletService.enums.Currency;
 import com.deodev.walletService.enums.FundReservationStatus;
-import com.deodev.walletService.util.JwtUtil;
 import com.deodev.walletService.walletPinService.model.WalletPin;
 import com.deodev.walletService.walletPinService.repository.WalletPinRepository;
 import com.deodev.walletService.walletService.model.Wallet;
@@ -28,10 +27,6 @@ import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.*;
@@ -50,9 +45,6 @@ class AccountControllerTest {
 
     @Autowired
     private ObjectMapper objectMapper;
-
-    @Autowired
-    private JwtUtil jwtUtil;
 
     @Autowired
     private WalletRepository walletRepository;
@@ -78,8 +70,6 @@ class AccountControllerTest {
 
     private UUID userId;
     private UUID walletId;
-    private String jwt;
-    private Map<String, Object> claims = new HashMap<>();
     private String accountNumber;
 
     @BeforeEach
@@ -89,8 +79,6 @@ class AccountControllerTest {
         fundReservationRepository.deleteAll();
         userId = UUID.randomUUID();
         walletId = UUID.randomUUID();
-        claims.put("userId", userId.toString());
-        claims.put("authorities", List.of("ROLE_USER"));
         accountNumber = "0123456789";
     }
 
@@ -101,11 +89,10 @@ class AccountControllerTest {
                 .userId(userId)
                 .build();
         walletRepository.save(wallet);
-        jwt = jwtUtil.generateToken(claims, "johndoe@email.com");
 
         // when & then
         mockMvc.perform(post("/api/v1/wallets/accounts/{currency}", "NGN")
-                        .header("Authorization", "Bearer " + jwt))
+                        .header("X-User-Id", userId))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.data.userId").value(userId.toString()))
                 .andExpect(jsonPath("$.data.walletId").value(wallet.getId().toString()))
@@ -117,7 +104,6 @@ class AccountControllerTest {
     @Test
     void getRecipientDetails_ShouldReturnUserDetails_WhenAccountExists() throws Exception {
         // given
-        jwt = jwtUtil.generateToken(claims, "johndoe@email.com");
         Account account = Account.builder()
                 .walletId(walletId)
                 .userId(userId)
@@ -132,13 +118,13 @@ class AccountControllerTest {
         ApiResponse<GetUserDetailsResponse> apiResponse =
                 ApiResponse.success(200, userDetails);
 
-        when(userServiceClient.getUser(eq(userId), any()))
+        when(userServiceClient.getUser(eq(userId)))
                 .thenReturn(apiResponse);
 
         // when & then
         mockMvc.perform(get("/api/v1/wallets/accounts/recipient/{accountNumber}", accountNumber)
                         .param("currency", "USD")
-                        .header("Authorization", "Bearer " + jwt))
+                        .header("X-User-Id", userId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.firstName").value("John"))
                 .andExpect(jsonPath("$.data.lastName").value("Doe"));
@@ -147,7 +133,6 @@ class AccountControllerTest {
     @Test
     void getUserAccounts_ShouldReturnAccounts_WhenAccountExists() throws Exception {
         // given
-        jwt = jwtUtil.generateToken(claims, "johndoe@email.com");
         Account account = Account.builder()
                 .walletId(walletId)
                 .userId(userId)
@@ -158,7 +143,7 @@ class AccountControllerTest {
 
         // when & then
         mockMvc.perform(get("/api/v1/wallets/accounts")
-                        .header("Authorization", "Bearer " + jwt))
+                        .header("X-User-Id", userId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.accounts[0].accountNumber").value(accountNumber))
                 .andExpect(jsonPath("$.data.accounts[0].currency").value("USD"))
@@ -168,8 +153,6 @@ class AccountControllerTest {
     @Test
     void validateAndReserveFunds_ShouldReturnReservationId_WhenSufficientFunds() throws Exception {
         // given
-        jwt = jwtUtil.generateToken(claims, "johndoe@email.com");
-
         walletPinRepository.save(WalletPin.builder()
                 .walletId(UUID.randomUUID())
                 .userId(userId)
@@ -189,7 +172,7 @@ class AccountControllerTest {
 
         // when & then
         mockMvc.perform(post("/api/v1/wallets/accounts/funds/reserve")
-                        .header("Authorization", "Bearer " + jwt)
+                        .header("X-User-Id", userId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -199,7 +182,6 @@ class AccountControllerTest {
     @Test
     void transferFunds_ShouldDebitSenderAndCreditReceiver_WhenReservationIsValid() throws Exception {
         // given
-        jwt = jwtUtil.generateToken(claims, "johndoe@email.com");
         UUID receiverWalletId = UUID.randomUUID();
         UUID receiverUserId = UUID.randomUUID();
         String receiverAccountNumber = "1111111111";
@@ -228,7 +210,7 @@ class AccountControllerTest {
 
         // when
         mockMvc.perform(post("/api/v1/wallets/accounts/funds/transfer")
-                        .header("Authorization", "Bearer " + jwt)
+                        .header("X-User-Id", userId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -249,7 +231,6 @@ class AccountControllerTest {
     @Test
     void releaseFunds_ShouldMarkReservationReleased_WhenReservationIsActive() throws Exception {
         // given
-        jwt = jwtUtil.generateToken(claims, "johndoe@email.com");
         UUID transactionId = UUID.randomUUID();
         FundReservation reservation = FundReservation.builder()
                 .transactionId(transactionId).accountNumber(accountNumber)
@@ -258,7 +239,7 @@ class AccountControllerTest {
 
         // when
         mockMvc.perform(post("/api/v1/wallets/accounts/funds/{transactionId}/release", transactionId)
-                        .header("Authorization", "Bearer " + jwt))
+                        .header("X-User-Id", userId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.transactionId").value(transactionId.toString()))
                 .andExpect(jsonPath("$.data.fundReservationId").value(reservation.getId().toString()));

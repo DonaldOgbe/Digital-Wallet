@@ -10,24 +10,20 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
 @RestController
 @RequiredArgsConstructor
-@Validated
 @RequestMapping("/api/v1/wallets/accounts")
 public class AccountController {
 
     private final AccountService accountService;
 
-    @PreAuthorize("hasAuthority('ROLE_USER')")
     @PostMapping("/{currency}")
     public ResponseEntity<?> createAccount(@PathVariable Currency currency,
-                                           @RequestAttribute("userId") String userId) {
+                                           @RequestHeader("X-User-Id") String userId) {
 
         CreateAccountResponse response = accountService.createAccount(userId, currency);
 
@@ -35,20 +31,17 @@ public class AccountController {
                 ApiResponse.success(HttpStatus.CREATED.value(), response));
     }
 
-    @PreAuthorize("hasAuthority('ROLE_USER')")
     @GetMapping("/recipient/{accountNumber}")
     public ResponseEntity<?> getRecipientDetails(@PathVariable String accountNumber,
-                                                 @RequestParam Currency currency,
-                                                 @RequestHeader("Authorization") String jwt) {
-        GetRecipientAccountUserDetailsResponse response = accountService.findAccountAndUserDetails(accountNumber, currency, jwt);
+                                                 @RequestParam Currency currency) {
+        GetRecipientAccountUserDetailsResponse response = accountService.findAccountAndUserDetails(accountNumber, currency);
 
         return ResponseEntity.status(HttpStatus.OK).body(
                 ApiResponse.success(HttpStatus.OK.value(), response));
     }
 
-    @PreAuthorize("hasAuthority('ROLE_USER')")
     @GetMapping
-    public ResponseEntity<?> getUserAccounts(@RequestAttribute("userId") String userId) {
+    public ResponseEntity<?> getUserAccounts(@RequestHeader("X-User-Id") String userId) {
         GetUserAccountsResponse response = accountService.getUserAccounts(userId);
 
         return ResponseEntity.status(HttpStatus.OK).body(
@@ -56,10 +49,9 @@ public class AccountController {
         );
     }
 
-    @PreAuthorize("hasAuthority('ROLE_USER')")
     @PostMapping("/funds/reserve")
     public ResponseEntity<?> reserveFunds(@Valid @RequestBody ReserveFundsRequest request,
-                                          @RequestAttribute("userId") String userId) {
+                                          @RequestHeader("X-User-Id") String userId) {
         ReserveFundsResponse response = accountService.validateAndReserveFunds(request, userId);
 
         return ResponseEntity.status(HttpStatus.OK).body(
@@ -67,7 +59,6 @@ public class AccountController {
         );
     }
 
-    @PreAuthorize("hasAuthority('ROLE_USER')")
     @PostMapping("/funds/transfer")
     public ResponseEntity<?> transferFunds(@Valid @RequestBody TransferFundsRequest request) {
         TransferFundsResponse response = accountService.transferFunds(request);
@@ -77,7 +68,6 @@ public class AccountController {
         );
     }
 
-    @PreAuthorize("hasAuthority('ROLE_USER')")
     @PostMapping("/funds/{transactionId}/release")
     public ResponseEntity<?> releaseFunds(@PathVariable UUID transactionId) {
         ReleaseFundsResponse response = accountService.releaseFunds(transactionId);

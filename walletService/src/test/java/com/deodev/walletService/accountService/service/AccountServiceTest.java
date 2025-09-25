@@ -34,12 +34,10 @@ class AccountServiceTest {
     private AccountService accountService;
 
     private UUID userId;
-    private String jwt;
 
     @BeforeEach
     void setUp() {
         userId = UUID.randomUUID();
-        jwt = "jwt-token";
     }
 
     @Test
@@ -49,11 +47,11 @@ class AccountServiceTest {
         ApiResponse<GetUserDetailsResponse> apiResponse =
                 ApiResponse.success(200, mockResponse);
 
-        when(userServiceClient.getUser(userId, "Bearer " + jwt))
+        when(userServiceClient.getUser(userId))
                 .thenReturn(apiResponse);
 
         // when
-        GetUserDetailsResponse result = accountService.getUserDetailsFromClient(userId, jwt);
+        GetUserDetailsResponse result = accountService.getUserDetailsFromClient(userId);
 
         // then
         assertEquals(mockResponse, result);
