@@ -11,6 +11,7 @@ import java.util.UUID;
 public record UserRegisteredResponse(
         UUID userId,
         String email,
-        String token
+        String accessToken,
+        String refreshToken
 ) {
 }

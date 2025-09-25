@@ -1,5 +1,6 @@
 package com.deodev.userService.service;
 
+import com.deodev.userService.config.CustomUserDetails;
 import com.deodev.userService.dto.request.UserLoginRequest;
 import com.deodev.userService.dto.request.UserRegistrationRequest;
 import com.deodev.userService.dto.response.UserLoginResponse;
@@ -28,53 +29,61 @@ public class AuthService {
     private final UserEventsPublisher userEventsPublisher;
     private final AuthenticationManager authenticationManager;
     private final UserService userService;
+    private final RedisCacheService redisCacheService;
 
     public UserRegisteredResponse register(UserRegistrationRequest request) {
         userService.validateUser(request.email());
 
         User savedUser = userService.saveUser(userService.createNewUser(request));
 
+        redisCacheService.cachePasswordUpdatedAt(String.valueOf(savedUser.getId()), savedUser.getPasswordUpdatedAt());
+
         userEventsPublisher.publishUserRegistered(savedUser);
 
-        UserDetails userDetails = authenticate(request.email(), request.password());
+        CustomUserDetails userDetails = authenticate(request.email(), request.password());
 
         List<String> authorities = getAuthorities(userDetails);
 
         Map<String, Object> claims = new HashMap<>();
         claims.put("authorities", authorities);
 
-        String jwt = jwtUtil.generateToken(claims, userDetails.getUsername());
+        String accessToken = jwtUtil.generateToken(claims, userDetails.getUsername());
+        String refreshToken = cacheToken(savedUser.getId(), 7);
 
         return UserRegisteredResponse.builder()
                 .userId(savedUser.getId())
                 .email(savedUser.getEmail())
-                .token(jwt)
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
                 .build();
     }
 
     public UserLoginResponse login(UserLoginRequest request) {
 
-        UserDetails userDetails = authenticate(request.email(), request.password());
+        CustomUserDetails userDetails = authenticate(request.email(), request.password());
 
         List<String> authorities = getAuthorities(userDetails);
 
         Map<String, Object> claims = new HashMap<>();
         claims.put("authorities", authorities);
 
-        String jwt = jwtUtil.generateToken(claims, userDetails.getUsername());
-        SecurityContextHolder.getContext().setAuthentication(jwtUtil.getAuthenticationFromToken(jwt));
+        String accessToken = jwtUtil.generateToken(claims, userDetails.getUsername());
+        SecurityContextHolder.getContext().setAuthentication(jwtUtil.getAuthenticationFromToken(accessToken));
+        String refreshToken = cacheToken(userDetails.user().getId(), 7);
+
 
         return UserLoginResponse.builder()
                 .user(userDetails.getUsername())
-                .token(jwt)
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
                 .build();
     }
 
-    UserDetails authenticate(String email, String password) {
+    CustomUserDetails authenticate(String email, String password) {
         Authentication loginAuthentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(email, password));
 
-        return (UserDetails) loginAuthentication.getPrincipal();
+        return (CustomUserDetails) loginAuthentication.getPrincipal();
     }
 
     List<String> getAuthorities(UserDetails userDetails) {
@@ -83,6 +92,12 @@ public class AuthService {
                 .toList();
     }
 
+    String cacheToken(UUID id, int days) {
+        String token = UUID.randomUUID().toString();
 
+        redisCacheService.cacheRefreshToken(String.valueOf(id), token, days);
+
+        return token;
+    }
 
 }

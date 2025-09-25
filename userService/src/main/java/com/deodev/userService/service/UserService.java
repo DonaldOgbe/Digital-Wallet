@@ -52,6 +52,10 @@ public class UserService {
         }
     }
 
+    public User findUserByEmail(String email) {
+        return userRepository.findByEmail(email).orElseThrow(() -> new ResourceNotFoundException("User not found with email " + email));
+    }
+
     @Transactional
     public void markUserVerified(UUID userId) {
         User user = userRepository.findById(userId)

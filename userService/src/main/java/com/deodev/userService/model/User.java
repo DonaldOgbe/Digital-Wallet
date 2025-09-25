@@ -3,6 +3,8 @@ package com.deodev.userService.model;
 import com.deodev.userService.enums.UserStatus;
 import jakarta.persistence.*;
 import lombok.*;
+
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
@@ -50,8 +52,12 @@ public class User {
     @Column(nullable = false)
     private boolean verified = false;
 
+    @Column(name = "password_updated_at", nullable = false)
+    private Instant passwordUpdatedAt;
+
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
+        this.passwordUpdatedAt = Instant.now();
     }
 }
