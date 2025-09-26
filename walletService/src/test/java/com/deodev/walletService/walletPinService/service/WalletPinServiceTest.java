@@ -1,6 +1,6 @@
 package com.deodev.walletService.walletPinService.service;
 
-import com.deodev.walletService.exception.PinMismatchException;
+import com.deodev.walletService.exception.InvalidPinException;
 import com.deodev.walletService.walletPinService.model.WalletPin;
 import com.deodev.walletService.walletPinService.repository.WalletPinRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,7 +15,6 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
-import static org.assertj.core.api.Assertions.*;
 
 @ExtendWith(MockitoExtension.class)
 class WalletPinServiceTest {
@@ -59,14 +58,14 @@ class WalletPinServiceTest {
         when(passwordEncoder.matches("wrongPin", "encodedPin")).thenReturn(false);
 
         // when & then
-        assertThrows(PinMismatchException.class,
+        assertThrows(InvalidPinException.class,
                 () -> walletPinService.verifyPin(userId, "wrongPin", "Incorrect PIN!"));
     }
 
     @Test
     void pinsMatch_ShouldThrowPinMismatchException_WhenPinsAreDifferent() {
         // when & then
-        assertThrows(PinMismatchException.class,
+        assertThrows(InvalidPinException.class,
                 () -> walletPinService.pinsMatch("1234", "4321"));
     }
 }

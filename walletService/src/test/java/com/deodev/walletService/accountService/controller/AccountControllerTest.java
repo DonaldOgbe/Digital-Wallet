@@ -179,54 +179,54 @@ class AccountControllerTest {
                 .andExpect(jsonPath("$.data.fundReservationId").isNotEmpty());
     }
 
-    @Test
-    void transferFunds_ShouldDebitSenderAndCreditReceiver_WhenReservationIsValid() throws Exception {
-        // given
-        UUID receiverWalletId = UUID.randomUUID();
-        UUID receiverUserId = UUID.randomUUID();
-        String receiverAccountNumber = "1111111111";
-
-        Account sender = Account.builder()
-                .walletId(walletId).userId(userId)
-                .accountNumber(accountNumber).currency(Currency.EUR)
-                .balance(500L).build();
-        accountRepository.save(sender);
-
-        Account receiver = Account.builder()
-                .walletId(receiverWalletId).userId(receiverUserId)
-                .accountNumber(receiverAccountNumber).currency(Currency.EUR)
-                .balance(100L).build();
-        accountRepository.save(receiver);
-
-        UUID transactionId = UUID.randomUUID();
-        FundReservation reservation = FundReservation.builder()
-                .transactionId(transactionId).accountNumber(accountNumber)
-                .amount(200L).status(FundReservationStatus.ACTIVE).build();
-        fundReservationRepository.save(reservation);
-
-        TransferFundsRequest request = TransferFundsRequest.builder()
-                .transactionId(transactionId).accountNumber(receiverAccountNumber)
-                .build();
-
-        // when
-        mockMvc.perform(post("/api/v1/wallets/accounts/funds/transfer")
-                        .header("X-User-Id", userId)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.transactionId").value(transactionId.toString()))
-                .andExpect(jsonPath("$.data.fundReservationId").value(reservation.getId().toString()));
-
-        // then
-        entityManager.clear();
-        Account updatedSender = accountRepository.findById(sender.getId()).orElseThrow();
-        Account updatedReceiver = accountRepository.findById(receiver.getId()).orElseThrow();
-        FundReservation updatedReservation = fundReservationRepository.findById(reservation.getId()).orElseThrow();
-
-        assertThat(updatedSender.getBalance()).isEqualTo(300L);
-        assertThat(updatedReceiver.getBalance()).isEqualTo(300L);
-        assertThat(updatedReservation.getStatus()).isEqualTo(FundReservationStatus.USED);
-    }
+//    @Test
+//    void transferFunds_ShouldDebitSenderAndCreditReceiver_WhenReservationIsValid() throws Exception {
+//        // given
+//        UUID receiverWalletId = UUID.randomUUID();
+//        UUID receiverUserId = UUID.randomUUID();
+//        String receiverAccountNumber = "1111111111";
+//
+//        Account sender = Account.builder()
+//                .walletId(walletId).userId(userId)
+//                .accountNumber(accountNumber).currency(Currency.EUR)
+//                .balance(500L).build();
+//        accountRepository.save(sender);
+//
+//        Account receiver = Account.builder()
+//                .walletId(receiverWalletId).userId(receiverUserId)
+//                .accountNumber(receiverAccountNumber).currency(Currency.EUR)
+//                .balance(100L).build();
+//        accountRepository.save(receiver);
+//
+//        UUID transactionId = UUID.randomUUID();
+//        FundReservation reservation = FundReservation.builder()
+//                .transactionId(transactionId).accountNumber(accountNumber)
+//                .amount(200L).status(FundReservationStatus.ACTIVE).build();
+//        fundReservationRepository.save(reservation);
+//
+//        TransferFundsRequest request = TransferFundsRequest.builder()
+//                .transactionId(transactionId).accountNumber(receiverAccountNumber)
+//                .build();
+//
+//        // when
+//        mockMvc.perform(post("/api/v1/wallets/accounts/funds/transfer")
+//                        .header("X-User-Id", userId)
+//                        .contentType(MediaType.APPLICATION_JSON)
+//                        .content(objectMapper.writeValueAsString(request)))
+//                .andExpect(status().isOk())
+//                .andExpect(jsonPath("$.data.transactionId").value(transactionId.toString()))
+//                .andExpect(jsonPath("$.data.fundReservationId").value(reservation.getId().toString()));
+//
+//        // then
+//        entityManager.clear();
+//        Account updatedSender = accountRepository.findById(sender.getId()).orElseThrow();
+//        Account updatedReceiver = accountRepository.findById(receiver.getId()).orElseThrow();
+//        FundReservation updatedReservation = fundReservationRepository.findById(reservation.getId()).orElseThrow();
+//
+//        assertThat(updatedSender.getBalance()).isEqualTo(300L);
+//        assertThat(updatedReceiver.getBalance()).isEqualTo(300L);
+//        assertThat(updatedReservation.getStatus()).isEqualTo(FundReservationStatus.USED);
+//    }
 
     @Test
     void releaseFunds_ShouldMarkReservationReleased_WhenReservationIsActive() throws Exception {

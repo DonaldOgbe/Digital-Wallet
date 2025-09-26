@@ -12,7 +12,6 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -42,8 +41,8 @@ public class GlobalExceptionHandler {
     }
 
 
-    @ExceptionHandler(PinMismatchException.class)
-    public ResponseEntity<?> handlePinMismatchException(PinMismatchException e, HttpServletRequest request) {
+    @ExceptionHandler(InvalidPinException.class)
+    public ResponseEntity<?> handlePinMismatchException(InvalidPinException e, HttpServletRequest request) {
         logger.error(e.getMessage(), e);
         return handleResponse(
                 HttpStatus.BAD_REQUEST,
@@ -86,8 +85,8 @@ public class GlobalExceptionHandler {
         );
     }
 
-    @ExceptionHandler(PeerToPeerTransferException.class)
-    public ResponseEntity<?> handleP2PTransferException(PeerToPeerTransferException e, HttpServletRequest request) {
+    @ExceptionHandler(P2PTransferException.class)
+    public ResponseEntity<?> handleP2PTransferException(P2PTransferException e, HttpServletRequest request) {
         logger.error(e.getMessage(), e);
         return handleResponse(
                 HttpStatus.CONFLICT,

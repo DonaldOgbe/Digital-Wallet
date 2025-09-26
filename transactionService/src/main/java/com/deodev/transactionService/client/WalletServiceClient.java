@@ -15,8 +15,8 @@ import org.springframework.web.bind.annotation.*;
         url = "${wallet.service.url}")
 public interface WalletServiceClient {
     @PostMapping("/api/v1/wallets/accounts/funds/reserve")
-    ApiResponse<ReserveFundsResponse> reserveFunds(@RequestHeader("Authorization") String AuthToken,
-                                                          @RequestBody ReserveFundsRequest request);
+    ApiResponse<ReserveFundsResponse> reserveFunds(@RequestBody ReserveFundsRequest request,
+                                                   @RequestHeader("X-User-Id") String userId);
 
 
     @PostMapping("/api/v1/wallets/accounts/funds/{transactionId}/release")

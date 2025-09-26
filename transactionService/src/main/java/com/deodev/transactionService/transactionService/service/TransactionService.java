@@ -10,12 +10,14 @@ import com.deodev.transactionService.enums.ErrorCode;
 import com.deodev.transactionService.enums.TransactionStatus;
 import com.deodev.transactionService.exception.ExternalServiceException;
 import com.deodev.transactionService.exception.PeerToPeerTransferException;
+import com.deodev.transactionService.exception.PinMismatchException;
 import com.deodev.transactionService.transactionService.dto.request.P2PTransferRequest;
 import com.deodev.transactionService.transactionService.dto.response.P2PTransferResponse;
 import com.deodev.transactionService.transactionService.model.Transaction;
 import com.deodev.transactionService.transactionService.repository.TransactionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.util.UUID;
@@ -39,25 +41,19 @@ public class TransactionService {
         return transactionRepository.save(transaction);
     }
 
-    public P2PTransferResponse processP2PTransfer(P2PTransferRequest request, String jwt) {
+    public P2PTransferResponse processP2PTransfer(P2PTransferRequest request, String userId) {
         Transaction transaction =
                 createNewTransaction(request.senderAccountNumber(), request.receiverAccountNumber(), request.amount());
 
         try {
-            validatePin(request.pin(), jwt, transaction);
-
-            UUID reservationId = reserveFunds(
+            UUID reservationId = validateAndReserveFunds(
                     ReserveFundsRequest.builder()
-                            .accountNumber(request.senderAccountNumber()).amount(request.amount()).transactionId(transaction.getId())
-                            .build(), jwt, transaction);
+                            .pin(request.pin()).accountNumber(request.senderAccountNumber())
+                            .amount(request.amount()).transactionId(transaction.getId())
+                            .build(), userId, transaction);
 
-            UUID transactionId = transferFunds(
-                    TransferFundsRequest.builder()
-                            .accountNumber(request.receiverAccountNumber()).transactionId(transaction.getId())
-                            .build(), jwt, transaction);
 
             return P2PTransferResponse.builder()
-                    .transactionId(transactionId)
                     .senderAccountNumber(request.senderAccountNumber())
                     .receiverAccountNumber(request.receiverAccountNumber())
                     .amount(request.amount())
@@ -72,20 +68,15 @@ public class TransactionService {
         }
     }
 
-    void validatePin(String pin, String jwt, Transaction transaction) {
-        ApiResponse<?> response = getResponseFromWalletClient(() -> walletServiceClient.validatePin(jwt, pin));
-
-        if (!response.isSuccess()) {
-            transaction.setErrorCode(ErrorCode.PIN_MISMATCH);
-            setFailedTransaction(transaction);
-            throw new PeerToPeerTransferException("Invalid Pin");
-        }
-    }
-
-    UUID reserveFunds(ReserveFundsRequest request, String jwt, Transaction transaction) {
-        ApiResponse<?> response = getResponseFromWalletClient(() -> walletServiceClient.reserveFunds(jwt, request));
+    UUID validateAndReserveFunds(ReserveFundsRequest request, String userId, Transaction transaction) {
+        ApiResponse<?> response = getResponseFromWalletClient(() -> walletServiceClient.reserveFunds(request, userId));
 
         if(!response.isSuccess()) {
+            if (response.getStatusCode() == HttpStatus.BAD_REQUEST.value()) {
+                transaction.setErrorCode(ErrorCode.PIN_MISMATCH);
+                setFailedTransaction(transaction);
+                throw new PinMismatchException("Incorrect Pin");
+            }
             transaction.setErrorCode(ErrorCode.FUND_RESERVATION_ERROR);
             setFailedTransaction(transaction);
             throw new PeerToPeerTransferException("Failed to reserve funds");
@@ -95,18 +86,18 @@ public class TransactionService {
         return data.fundReservationId();
     }
 
-    UUID transferFunds(TransferFundsRequest request, String jwt, Transaction transaction) {
-        ApiResponse<?> response = getResponseFromWalletClient(() -> walletServiceClient.transferFunds(jwt, request));
-
-        if(!response.isSuccess()) {
-            transaction.setErrorCode(ErrorCode.P2P_TRANSFER_ERROR);
-            setFailedTransaction(transaction);
-            throw new PeerToPeerTransferException("Failed to transfer funds");
-        }
-
-        TransferFundsResponse data = (TransferFundsResponse) response.getData();
-        return data.transactionId();
-    }
+//    UUID transferFunds(TransferFundsRequest request, String jwt, Transaction transaction) {
+//        ApiResponse<?> response = getResponseFromWalletClient(() -> walletServiceClient.transferFunds(jwt, request));
+//
+//        if(!response.isSuccess()) {
+//            transaction.setErrorCode(ErrorCode.P2P_TRANSFER_ERROR);
+//            setFailedTransaction(transaction);
+//            throw new PeerToPeerTransferException("Failed to transfer funds");
+//        }
+//
+//        TransferFundsResponse data = (TransferFundsResponse) response.getData();
+//        return data.transactionId();
+//    }
 
     <T> ApiResponse<T> getResponseFromWalletClient(Supplier<ApiResponse<T>> func) {
         try {

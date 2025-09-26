@@ -96,6 +96,17 @@ public class GlobalExceptionHandler {
         );
     }
 
+    @ExceptionHandler(PinMismatchException.class)
+    public ResponseEntity<?> handlePinMismatchException(PinMismatchException e, HttpServletRequest request) {
+        logger.error(e.getMessage(), e);
+        return handleResponse(
+                HttpStatus.BAD_REQUEST,
+                ErrorCode.PIN_MISMATCH,
+                e.getMessage(),
+                request.getRequestURI()
+        );
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<?> handleExceptions(Exception e, HttpServletRequest request) {
 

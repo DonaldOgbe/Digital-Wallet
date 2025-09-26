@@ -1,6 +1,6 @@
 package com.deodev.walletService.walletPinService.service;
 
-import com.deodev.walletService.exception.PinMismatchException;
+import com.deodev.walletService.exception.InvalidPinException;
 import com.deodev.walletService.exception.ResourceNotFoundException;
 import com.deodev.walletService.walletPinService.dto.request.SetPinRequest;
 import com.deodev.walletService.walletPinService.dto.request.UpdatePinRequest;
@@ -83,15 +83,15 @@ public class WalletPinService {
         );
 
         if (!passwordEncoder.matches(pin, walletPin.getPin())) {
-            throw new PinMismatchException(errorMessage.isEmpty() ? "Incorrect Pin: %s".formatted(pin) : errorMessage);
+            throw new InvalidPinException(errorMessage.isEmpty() ? "Incorrect Pin: %s".formatted(pin) : errorMessage);
         }
 
         return walletPin;
     }
 
-    void pinsMatch(String pin1, String pin2) throws PinMismatchException {
+    void pinsMatch(String pin1, String pin2) throws InvalidPinException {
         if (!pin1.equals(pin2)) {
-            throw new PinMismatchException("PINs do not match");
+            throw new InvalidPinException("PINs do not match");
         }
     }
 }

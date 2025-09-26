@@ -48,7 +48,7 @@ public class RabbitMQConfig {
                                                   TopicExchange transactionEventsExchange) {
         return BindingBuilder.bind(walletTransactionEventsQueue)
                 .to(transactionEventsExchange)
-                .with(TRANSACTION_P2P_WILDCARD);
+                .with(P2P_TRANSACTION_WILDCARD);
     }
 
 

@@ -1,5 +1,8 @@
 package com.deodev.walletService.rabbitmq.publisher;
 
+import com.deodev.walletService.enums.ErrorCode;
+import com.deodev.walletService.rabbitmq.events.TransferCompletedEvent;
+import com.deodev.walletService.rabbitmq.events.TransferFailedEvent;
 import com.deodev.walletService.rabbitmq.events.WalletCreatedEvent;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -45,5 +48,52 @@ class WalletEventsPublisherTest {
         );
 
         assertThat(captor.getValue().userId()).isEqualTo(userId);
+    }
+
+    @Test
+    void publishTransferCompleted_ShouldPublishEvent() {
+        // given
+        UUID transactionId = UUID.randomUUID();
+        UUID fundReservationId = UUID.randomUUID();
+        ArgumentCaptor<TransferCompletedEvent> captor = ArgumentCaptor.forClass(TransferCompletedEvent.class);
+
+        // when
+        walletEventsPublisher.publishTransferCompleted(transactionId, fundReservationId);
+
+        // then
+        verify(rabbitTemplate).convertAndSend(
+                eq(WALLET_EXCHANGE),
+                eq(TRANSFER_COMPLETED),
+                captor.capture()
+        );
+
+        TransferCompletedEvent event = captor.getValue();
+        assertThat(event.transactionId()).isEqualTo(transactionId);
+        assertThat(event.fundReservationId()).isEqualTo(fundReservationId);
+    }
+
+    @Test
+    void publishTransferFailed_ShouldPublishEvent() {
+        // given
+        UUID transactionId = UUID.randomUUID();
+        ErrorCode errorCode = ErrorCode.SYSTEM_ERROR;
+        String message = "Insufficient funds";
+
+        ArgumentCaptor<TransferFailedEvent> captor = ArgumentCaptor.forClass(TransferFailedEvent.class);
+
+        // when
+        walletEventsPublisher.publishTransferFailed(transactionId, errorCode, message);
+
+        // then
+        verify(rabbitTemplate).convertAndSend(
+                eq(WALLET_EXCHANGE),
+                eq(TRANSFER_FAILED),
+                captor.capture()
+        );
+
+        TransferFailedEvent event = captor.getValue();
+        assertThat(event.transactionId()).isEqualTo(transactionId);
+        assertThat(event.errorCode()).isEqualTo(errorCode);
+        assertThat(event.message()).isEqualTo(message);
     }
 }

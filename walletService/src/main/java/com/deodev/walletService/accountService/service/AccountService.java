@@ -2,7 +2,6 @@ package com.deodev.walletService.accountService.service;
 
 import com.deodev.walletService.accountService.dto.response.*;
 import com.deodev.walletService.accountService.dto.request.ReserveFundsRequest;
-import com.deodev.walletService.accountService.dto.request.TransferFundsRequest;
 import com.deodev.walletService.accountService.model.Account;
 import com.deodev.walletService.accountService.model.FundReservation;
 import com.deodev.walletService.accountService.repository.AccountRepository;
@@ -12,6 +11,9 @@ import com.deodev.walletService.dto.response.GetUserDetailsResponse;
 import com.deodev.walletService.enums.Currency;
 import com.deodev.walletService.enums.FundReservationStatus;
 import com.deodev.walletService.exception.*;
+import com.deodev.walletService.rabbitmq.events.P2PTransferRequestedEvent;
+import com.deodev.walletService.rabbitmq.listener.TransactionEventsListener;
+import com.deodev.walletService.rabbitmq.publisher.WalletEventsPublisher;
 import com.deodev.walletService.walletPinService.service.WalletPinService;
 import com.deodev.walletService.walletService.model.Wallet;
 import com.deodev.walletService.walletService.service.WalletService;
@@ -36,6 +38,7 @@ public class AccountService {
     private final FundReservationService fundReservationService;
     private final UserServiceClient userServiceClient;
     private final WalletPinService walletPinService;
+    private final WalletEventsPublisher walletEventsPublisher;
 
 
     public CreateAccountResponse createAccount(String userId, Currency currency) {
@@ -94,14 +97,16 @@ public class AccountService {
                 .build();
     }
 
-    public TransferFundsResponse transferFunds(TransferFundsRequest request) {
-        FundReservation reservation = fundReservationService.findByTransactionId(request.transactionId());
+    public TransferFundsResponse transferFunds(P2PTransferRequestedEvent event) {
+        FundReservation reservation = fundReservationService.findByTransactionId(event.transactionId());
         isReservationValidForTransfer(reservation);
 
         debitSender(reservation.getAccountNumber(), reservation.getAmount());
-        creditReceiver(request.accountNumber(), reservation.getAmount());
+        creditReceiver(event.accountNumber(), reservation.getAmount());
 
         fundReservationService.setUsedReservation(reservation);
+
+        walletEventsPublisher.publishTransferCompleted(event.transactionId(), reservation.getId());
 
         return TransferFundsResponse.builder()
                 .transactionId(reservation.getTransactionId())
@@ -142,7 +147,7 @@ public class AccountService {
         try {
             debitBalance(sender, amount);
         } catch (Exception e) {
-            throw new PeerToPeerTransferException("Failed to debit sender account: " + sender, e);
+            throw new P2PTransferException("Failed to debit sender account: " + sender, e);
         }
     }
 
@@ -150,7 +155,7 @@ public class AccountService {
         try {
             creditBalance(receiver, amount);
         } catch (Exception e) {
-            throw new PeerToPeerTransferException("Failed to credit receiver account: " + receiver, e);
+            throw new P2PTransferException("Failed to credit receiver account: " + receiver, e);
         }
     }
 

@@ -31,24 +31,24 @@ class WalletServiceClientTest {
     void shouldSendTransferFundsRequestAndParseResponse() throws Exception {
         // given
         UUID reservationId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
         ApiResponse<ReserveFundsResponse> expectedResponse = ApiResponse.success(
                 HttpStatus.OK.value(), ReserveFundsResponse.builder().fundReservationId(reservationId).build());
 
         stubFor(post(urlEqualTo("/api/v1/wallets/accounts/funds/reserve"))
-                .withHeader("Authorization", equalTo("Bearer token"))
-                .withHeader("Wallet-Pin", equalTo("1234"))
+                .withHeader("X-User-Id", equalTo(userId.toString()))
                 .willReturn(aResponse()
                         .withStatus(HttpStatus.OK.value())
                         .withHeader("Content-Type", "application/json")
                         .withBody(mapper.writeValueAsString(expectedResponse))));
 
         // when
-        ApiResponse<ValidateWalletPinResponse> actualResponse =
-                walletServiceClient.validatePin("Bearer token", "1234");
+        ApiResponse<ReserveFundsResponse> actualResponse =
+                walletServiceClient.reserveFunds(ReserveFundsRequest.builder().build(), userId.toString());
 
         // then
         assertThat(actualResponse.getStatusCode()).isEqualTo(HttpStatus.OK.value());
         assertThat(actualResponse.isSuccess()).isTrue();
-        assertThat(actualResponse.getData().isValid()).isTrue();
+        assertThat(actualResponse.getData().fundReservationId()).isEqualTo(reservationId);
     }
 }

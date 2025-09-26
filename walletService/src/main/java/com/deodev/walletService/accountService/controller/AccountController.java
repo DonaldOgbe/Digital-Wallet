@@ -59,14 +59,14 @@ public class AccountController {
         );
     }
 
-    @PostMapping("/funds/transfer")
-    public ResponseEntity<?> transferFunds(@Valid @RequestBody TransferFundsRequest request) {
-        TransferFundsResponse response = accountService.transferFunds(request);
-
-        return ResponseEntity.status(HttpStatus.OK).body(
-                ApiResponse.success(HttpStatus.OK.value(), response)
-        );
-    }
+//    @PostMapping("/funds/transfer")
+//    public ResponseEntity<?> transferFunds(@Valid @RequestBody TransferFundsRequest request) {
+//        TransferFundsResponse response = accountService.transferFunds(request);
+//
+//        return ResponseEntity.status(HttpStatus.OK).body(
+//                ApiResponse.success(HttpStatus.OK.value(), response)
+//        );
+//    }
 
     @PostMapping("/funds/{transactionId}/release")
     public ResponseEntity<?> releaseFunds(@PathVariable UUID transactionId) {
