@@ -21,10 +21,10 @@ public class Transaction {
     @Column(nullable = false, updatable = false)
     private UUID id;
 
-    @Column(name = "sender_account_number", nullable = false, length = 10)
+    @Column(name = "snd_acct_num", nullable = false, length = 10)
     private String senderAccountNumber;
 
-    @Column(name = "receiver_account_number", nullable = false, length = 10)
+    @Column(name = "rcv_acct_num", nullable = false, length = 10)
     private String receiverAccountNumber;
 
     @Column(nullable = false)
@@ -35,7 +35,7 @@ public class Transaction {
     private TransactionStatus status = TransactionStatus.PENDING;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "error_code")
+    @Column(name = "err_code")
     private ErrorCode errorCode;
 
     @Column(name = "created_at", nullable = false, updatable = false)

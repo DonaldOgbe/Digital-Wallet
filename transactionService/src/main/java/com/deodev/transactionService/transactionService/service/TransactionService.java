@@ -3,14 +3,13 @@ package com.deodev.transactionService.transactionService.service;
 import com.deodev.transactionService.client.WalletServiceClient;
 import com.deodev.transactionService.dto.ApiResponse;
 import com.deodev.transactionService.dto.request.ReserveFundsRequest;
-import com.deodev.transactionService.dto.request.TransferFundsRequest;
 import com.deodev.transactionService.dto.response.ReserveFundsResponse;
-import com.deodev.transactionService.dto.response.TransferFundsResponse;
 import com.deodev.transactionService.enums.ErrorCode;
 import com.deodev.transactionService.enums.TransactionStatus;
 import com.deodev.transactionService.exception.ExternalServiceException;
-import com.deodev.transactionService.exception.PeerToPeerTransferException;
+import com.deodev.transactionService.exception.P2PTransferException;
 import com.deodev.transactionService.exception.PinMismatchException;
+import com.deodev.transactionService.exception.ResourceNotFoundException;
 import com.deodev.transactionService.transactionService.dto.request.P2PTransferRequest;
 import com.deodev.transactionService.transactionService.dto.response.P2PTransferResponse;
 import com.deodev.transactionService.transactionService.model.Transaction;
@@ -41,26 +40,21 @@ public class TransactionService {
         return transactionRepository.save(transaction);
     }
 
-    public P2PTransferResponse processP2PTransfer(P2PTransferRequest request, String userId) {
-        Transaction transaction =
-                createNewTransaction(request.senderAccountNumber(), request.receiverAccountNumber(), request.amount());
+    public ApiResponse<?> processP2PTransfer(P2PTransferRequest request, String userId) {
+        Transaction transaction = Transaction.builder()
+                .senderAccountNumber(request.senderAccountNumber())
+                .receiverAccountNumber(request.receiverAccountNumber())
+                .amount(request.amount())
+                .build();
 
         try {
-            UUID reservationId = validateAndReserveFunds(
-                    ReserveFundsRequest.builder()
-                            .pin(request.pin()).accountNumber(request.senderAccountNumber())
-                            .amount(request.amount()).transactionId(transaction.getId())
-                            .build(), userId, transaction);
 
 
-            return P2PTransferResponse.builder()
-                    .senderAccountNumber(request.senderAccountNumber())
-                    .receiverAccountNumber(request.receiverAccountNumber())
-                    .amount(request.amount())
-                    .build();
 
-        } catch (PeerToPeerTransferException e) {
-            throw new PeerToPeerTransferException(e.getMessage(), e);
+
+
+        } catch (P2PTransferException e) {
+            throw new P2PTransferException(e.getMessage(), e);
         } catch (ExternalServiceException e) {
             throw new ExternalServiceException(e.getMessage(), e);
         } catch (Exception e) {
@@ -79,7 +73,7 @@ public class TransactionService {
             }
             transaction.setErrorCode(ErrorCode.FUND_RESERVATION_ERROR);
             setFailedTransaction(transaction);
-            throw new PeerToPeerTransferException("Failed to reserve funds");
+            throw new P2PTransferException("Failed to reserve funds");
         }
 
         ReserveFundsResponse data = (ReserveFundsResponse) response.getData();
@@ -98,6 +92,12 @@ public class TransactionService {
 //        TransferFundsResponse data = (TransferFundsResponse) response.getData();
 //        return data.transactionId();
 //    }
+
+    public Transaction findByIdempotencyKey(String key) {
+        return transactionRepository.findByIdempotencyKey(key).orElseThrow(
+                () -> new ResourceNotFoundException(
+                        "Transaction not found for idempotency key: %s".formatted(key)));
+    }
 
     <T> ApiResponse<T> getResponseFromWalletClient(Supplier<ApiResponse<T>> func) {
         try {

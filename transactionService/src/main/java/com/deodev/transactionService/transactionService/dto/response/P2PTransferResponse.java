@@ -9,6 +9,7 @@ public record P2PTransferResponse(
         UUID transactionId,
         String senderAccountNumber,
         String receiverAccountNumber,
-        Long amount
+        Long amount,
+        String status
 ) {
 }

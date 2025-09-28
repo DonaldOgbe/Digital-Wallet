@@ -1,9 +1,6 @@
 package com.deodev.transactionService.transactionService.dto.request;
 
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Positive;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 import lombok.Builder;
 
 @Builder
@@ -22,6 +19,10 @@ public record P2PTransferRequest(
 
         @Size(min = 4, max = 4, message = "Pin must be exactly 4 digits")
         @Pattern(regexp = "\\d+", message = "Pin must contain only digits")
-        String pin
+        String pin,
+
+        @NotNull(message = "Idempotency Key cannot be null")
+        @NotBlank(message = "Idempotency Key cannot be blank")
+        String idempotencyKey
 ) {
 }

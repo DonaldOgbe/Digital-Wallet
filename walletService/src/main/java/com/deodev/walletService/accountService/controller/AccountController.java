@@ -1,8 +1,7 @@
 package com.deodev.walletService.accountService.controller;
 
-import com.deodev.walletService.accountService.dto.request.TransferFundsRequest;
+import com.deodev.walletService.accountService.dto.request.P2PTransferRequest;
 import com.deodev.walletService.accountService.dto.response.*;
-import com.deodev.walletService.accountService.dto.request.ReserveFundsRequest;
 import com.deodev.walletService.accountService.service.AccountService;
 import com.deodev.walletService.dto.ApiResponse;
 import com.deodev.walletService.enums.Currency;
@@ -11,8 +10,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.UUID;
 
 @RestController
 @RequiredArgsConstructor
@@ -49,31 +46,11 @@ public class AccountController {
         );
     }
 
-    @PostMapping("/funds/reserve")
-    public ResponseEntity<?> reserveFunds(@Valid @RequestBody ReserveFundsRequest request,
+    @PostMapping("/funds/p2p/transfer")
+    public ResponseEntity<ApiResponse<?>> p2pTransfer(@Valid @RequestBody P2PTransferRequest request,
                                           @RequestHeader("X-User-Id") String userId) {
-        ReserveFundsResponse response = accountService.validateAndReserveFunds(request, userId);
+        ApiResponse<?> response = accountService.P2PTransfer(request, userId);
 
-        return ResponseEntity.status(HttpStatus.OK).body(
-                ApiResponse.success(HttpStatus.OK.value(), response)
-        );
-    }
-
-//    @PostMapping("/funds/transfer")
-//    public ResponseEntity<?> transferFunds(@Valid @RequestBody TransferFundsRequest request) {
-//        TransferFundsResponse response = accountService.transferFunds(request);
-//
-//        return ResponseEntity.status(HttpStatus.OK).body(
-//                ApiResponse.success(HttpStatus.OK.value(), response)
-//        );
-//    }
-
-    @PostMapping("/funds/{transactionId}/release")
-    public ResponseEntity<?> releaseFunds(@PathVariable UUID transactionId) {
-        ReleaseFundsResponse response = accountService.releaseFunds(transactionId);
-
-        return ResponseEntity.status(HttpStatus.OK).body(
-                ApiResponse.success(HttpStatus.OK.value(), response)
-        );
+        return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 }

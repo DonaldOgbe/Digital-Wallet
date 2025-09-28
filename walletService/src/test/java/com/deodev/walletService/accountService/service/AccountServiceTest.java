@@ -1,6 +1,5 @@
 package com.deodev.walletService.accountService.service;
 
-import com.deodev.walletService.accountService.dto.request.ReserveFundsRequest;
 import com.deodev.walletService.accountService.model.Account;
 import com.deodev.walletService.accountService.repository.AccountRepository;
 import com.deodev.walletService.client.UserServiceClient;
@@ -18,7 +17,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -60,36 +58,33 @@ class AccountServiceTest {
     @Test
     void hasSufficientFunds_ShouldThrowResourceNotFound_WhenAccountDoesNotExist() {
         // given
-        ReserveFundsRequest request = ReserveFundsRequest.builder()
-                .accountNumber("0123456789")
-                .amount(100L)
-                .build();
-        when(accountRepository.findByUserIdAndAccountNumber(userId, request.accountNumber()))
+        String accountNumber = "0123456789";
+        Long amount = 100L;
+
+        when(accountRepository.findByUserIdAndAccountNumber(userId, accountNumber))
                 .thenReturn(Optional.empty());
 
         // when & then
         assertThrows(ResourceNotFoundException.class,
-                () -> accountService.hasSufficientFunds(userId, request));
+                () -> accountService.hasSufficientFunds(userId, accountNumber, amount));
     }
 
     @Test
     void hasSufficientFunds_ShouldThrowInsufficientBalance_WhenBalanceIsTooLow() {
         // given
-        ReserveFundsRequest request = ReserveFundsRequest.builder()
-                .accountNumber("0123456789")
-                .amount(100L)
-                .build();
+        String accountNumber = "0123456789";
+        Long amount = 100L;
 
         Account account = Account.builder()
                 .balance(50L)
                 .build();
 
-        when(accountRepository.findByUserIdAndAccountNumber(userId, request.accountNumber()))
+        when(accountRepository.findByUserIdAndAccountNumber(userId, accountNumber))
                 .thenReturn(Optional.of(account));
 
         // when & then
         assertThrows(InsufficientBalanceException.class,
-                () -> accountService.hasSufficientFunds(userId, request));
+                () -> accountService.hasSufficientFunds(userId, accountNumber, amount));
     }
 
 

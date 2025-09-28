@@ -1,7 +1,7 @@
 package com.deodev.walletService.accountService.service;
 
+import com.deodev.walletService.accountService.dto.request.P2PTransferRequest;
 import com.deodev.walletService.accountService.dto.response.*;
-import com.deodev.walletService.accountService.dto.request.ReserveFundsRequest;
 import com.deodev.walletService.accountService.model.Account;
 import com.deodev.walletService.accountService.model.FundReservation;
 import com.deodev.walletService.accountService.repository.AccountRepository;
@@ -11,15 +11,15 @@ import com.deodev.walletService.dto.response.GetUserDetailsResponse;
 import com.deodev.walletService.enums.Currency;
 import com.deodev.walletService.enums.FundReservationStatus;
 import com.deodev.walletService.exception.*;
-import com.deodev.walletService.rabbitmq.events.P2PTransferRequestedEvent;
-import com.deodev.walletService.rabbitmq.listener.TransactionEventsListener;
 import com.deodev.walletService.rabbitmq.publisher.WalletEventsPublisher;
 import com.deodev.walletService.walletPinService.service.WalletPinService;
 import com.deodev.walletService.walletService.model.Wallet;
 import com.deodev.walletService.walletService.service.WalletService;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -38,8 +38,6 @@ public class AccountService {
     private final FundReservationService fundReservationService;
     private final UserServiceClient userServiceClient;
     private final WalletPinService walletPinService;
-    private final WalletEventsPublisher walletEventsPublisher;
-
 
     public CreateAccountResponse createAccount(String userId, Currency currency) {
 
@@ -84,47 +82,29 @@ public class AccountService {
                 .build();
     }
 
-    public ReserveFundsResponse validateAndReserveFunds(ReserveFundsRequest request, String userId) {
-        walletPinService.validatePin(userId, request.pin());
+    @Transactional
+    public ApiResponse<?> P2PTransfer(P2PTransferRequest request, String userId) {
+        try {
+            walletPinService.validatePin(userId, request.pin());
 
-        Account account = hasSufficientFunds(UUID.fromString(userId), request);
+            FundReservation reservation = reserveFunds(UUID.fromString(userId), request);
 
-        FundReservation fundReservation = fundReservationService.createNewReservation(
-                account.getAccountNumber(), request.transactionId(), request.amount());
+            debitSender(request.senderAccountNumber(), request.amount());
+            creditReceiver(request.receiverAccountNumber(), request.amount());
 
-        return ReserveFundsResponse.builder()
-                .fundReservationId(fundReservation.getId())
-                .build();
-    }
+            fundReservationService.setUsedReservation(reservation);
 
-    public TransferFundsResponse transferFunds(P2PTransferRequestedEvent event) {
-        FundReservation reservation = fundReservationService.findByTransactionId(event.transactionId());
-        isReservationValidForTransfer(reservation);
-
-        debitSender(reservation.getAccountNumber(), reservation.getAmount());
-        creditReceiver(event.accountNumber(), reservation.getAmount());
-
-        fundReservationService.setUsedReservation(reservation);
-
-        walletEventsPublisher.publishTransferCompleted(event.transactionId(), reservation.getId());
-
-        return TransferFundsResponse.builder()
-                .transactionId(reservation.getTransactionId())
-                .fundReservationId(reservation.getId())
-                .build();
-    }
-
-    public ReleaseFundsResponse releaseFunds(UUID transactionId) {
-        FundReservation reservation = fundReservationService.findByTransactionId(transactionId);
-
-        isReservationValidForRelease(reservation);
-
-        fundReservationService.setReleasedReservation(reservation);
-
-        return ReleaseFundsResponse.builder()
-                .transactionId(reservation.getTransactionId())
-                .fundReservationId(reservation.getId())
-                .build();
+            return ApiResponse.success(HttpStatus.OK.value(), P2PTransferResponse.builder()
+                    .transactionId(reservation.getTransactionId())
+                    .fundReservationId(reservation.getId())
+                    .amount(reservation.getAmount())
+                    .senderAccountNumber(reservation.getAccountNumber())
+                    .receiverAccountNumber(request.receiverAccountNumber())
+                    .build());
+        } catch (Exception e) {
+            log.error("P2P Transfer failed", e);
+            throw e;
+        }
     }
 
     public void creditBalance(String accountNumber, long amount) {
@@ -141,6 +121,13 @@ public class AccountService {
 
         account.setBalance(account.getBalance() - amount);
         accountRepository.save(account);
+    }
+
+    FundReservation reserveFunds(UUID userId, P2PTransferRequest request) {
+        Account account = hasSufficientFunds(userId, request.senderAccountNumber(), request.amount());
+
+        return fundReservationService.createNewReservation(
+                account.getAccountNumber(), request.transactionId(), request.amount());
     }
 
     void debitSender(String sender, Long amount) {
@@ -189,38 +176,19 @@ public class AccountService {
         }
     }
 
-    Account hasSufficientFunds(UUID userId, ReserveFundsRequest request) {
-        Account account = accountRepository.findByUserIdAndAccountNumber(userId, request.accountNumber())
+    Account hasSufficientFunds(UUID userId, String accountNumber, Long amount) {
+        Account account = accountRepository.findByUserIdAndAccountNumber(userId, accountNumber)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Account not found for userId: %s".formatted(userId)
                 ));
 
-        if (account.getBalance() < request.amount()) {
+        if (account.getBalance() < amount) {
             throw new InsufficientBalanceException(
                     "Insufficient funds for userId: %s".formatted(userId)
             );
         }
 
         return account;
-    }
-
-    void isReservationValidForTransfer(FundReservation reservation) {
-        if (reservation.getExpiredAt() != null && reservation.getExpiredAt().isBefore(LocalDateTime.now())) {
-            throw new FundReservationException("Fund reservation has expired");
-        }
-
-        if (reservation.getStatus() != FundReservationStatus.ACTIVE) {
-            throw new FundReservationException("Fund reservation is not active");
-        }
-    }
-
-    void isReservationValidForRelease(FundReservation reservation) {
-        if (reservation.getStatus() == FundReservationStatus.USED) {
-            throw new FundReservationException("Reservation already used");
-        }
-        if (reservation.getStatus() == FundReservationStatus.RELEASED) {
-            throw new FundReservationException("Reservation already released");
-        }
     }
 
 }
