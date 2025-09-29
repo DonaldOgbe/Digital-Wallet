@@ -20,7 +20,7 @@ public class UserController {
 
     @PreAuthorize("hasAuthority('ROLE_USER')")
     @GetMapping("/{userId}")
-    public ResponseEntity<?> getUser(@PathVariable UUID userId) {
+    public ResponseEntity<ApiResponse<?>> getUser(@PathVariable UUID userId) {
 
         GetUserDetailsResponse response = userService.findUserDetails(userId);
         return ResponseEntity

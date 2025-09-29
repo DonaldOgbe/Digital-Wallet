@@ -3,7 +3,6 @@ package com.deodev.transactionService.exception;
 import com.deodev.transactionService.dto.ApiResponse;
 import com.deodev.transactionService.dto.ErrorResponse;
 import com.deodev.transactionService.enums.ErrorCode;
-import com.deodev.transactionService.idempotencyService.IdempotencyService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -41,28 +40,6 @@ public class GlobalExceptionHandler {
         );
     }
 
-//    @ExceptionHandler(AccessDeniedException.class)
-//    public ResponseEntity<?> handleAuthorizationDeniedExceptions(AccessDeniedException e, HttpServletRequest request) {
-//        logger.error("Access Denied", e);
-//        return handleResponse(
-//                HttpStatus.FORBIDDEN,
-//                ErrorCode.UNAUTHORIZED,
-//                "Access Denied",
-//                request.getRequestURI()
-//        );
-//    }
-
-    @ExceptionHandler(TokenValidationException.class)
-    public ResponseEntity<?> handleTokenValidationExceptions(TokenValidationException e, HttpServletRequest request) {
-        logger.error(e.getMessage(), e);
-        return handleResponse(
-                HttpStatus.UNAUTHORIZED,
-                ErrorCode.INVALID_TOKEN,
-                e.getMessage(),
-                request.getRequestURI()
-        );
-    }
-
     @ExceptionHandler(ExternalServiceException.class)
     public ResponseEntity<?> handleExternalServiceException(ExternalServiceException e, HttpServletRequest request) {
         logger.error(e.getMessage(), e);
@@ -91,17 +68,6 @@ public class GlobalExceptionHandler {
         return handleResponse(
                 HttpStatus.CONFLICT,
                 ErrorCode.P2P_TRANSFER_ERROR,
-                e.getMessage(),
-                request.getRequestURI()
-        );
-    }
-
-    @ExceptionHandler(PinMismatchException.class)
-    public ResponseEntity<?> handlePinMismatchException(PinMismatchException e, HttpServletRequest request) {
-        logger.error(e.getMessage(), e);
-        return handleResponse(
-                HttpStatus.BAD_REQUEST,
-                ErrorCode.PIN_MISMATCH,
                 e.getMessage(),
                 request.getRequestURI()
         );

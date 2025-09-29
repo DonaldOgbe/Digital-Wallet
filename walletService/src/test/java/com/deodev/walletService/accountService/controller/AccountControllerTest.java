@@ -20,7 +20,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -87,8 +89,9 @@ class AccountControllerTest {
         walletRepository.save(wallet);
 
         // when & then
-        mockMvc.perform(post("/api/v1/wallets/accounts/{currency}", "NGN")
-                        .header("X-User-Id", userId))
+        mockMvc.perform(post("/api/v1/wallets/accounts")
+                        .header("X-User-Id", userId)
+                        .param("currency", "NGN"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.data.userId").value(userId.toString()))
                 .andExpect(jsonPath("$.data.walletId").value(wallet.getId().toString()))
@@ -111,8 +114,8 @@ class AccountControllerTest {
         GetUserDetailsResponse userDetails = GetUserDetailsResponse.builder()
                 .firstName("John").lastName("Doe").email("johndoe@email.com").build();
 
-        ApiResponse<GetUserDetailsResponse> apiResponse =
-                ApiResponse.success(200, userDetails);
+        ResponseEntity<ApiResponse<?>> apiResponse = ResponseEntity.status(HttpStatus.OK.value())
+                .body(ApiResponse.success(200, userDetails));
 
         when(userServiceClient.getUser(eq(userId)))
                 .thenReturn(apiResponse);

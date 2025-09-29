@@ -18,8 +18,8 @@ public class AccountController {
 
     private final AccountService accountService;
 
-    @PostMapping("/{currency}")
-    public ResponseEntity<?> createAccount(@PathVariable Currency currency,
+    @PostMapping
+    public ResponseEntity<?> createAccount(@RequestParam Currency currency,
                                            @RequestHeader("X-User-Id") String userId) {
 
         CreateAccountResponse response = accountService.createAccount(userId, currency);
@@ -29,12 +29,11 @@ public class AccountController {
     }
 
     @GetMapping("/recipient/{accountNumber}")
-    public ResponseEntity<?> getRecipientDetails(@PathVariable String accountNumber,
+    public ResponseEntity<ApiResponse<?>> getRecipientDetails(@PathVariable String accountNumber,
                                                  @RequestParam Currency currency) {
-        GetRecipientAccountUserDetailsResponse response = accountService.findAccountAndUserDetails(accountNumber, currency);
+        ApiResponse<?> response = accountService.findAccountAndUserDetails(accountNumber, currency);
 
-        return ResponseEntity.status(HttpStatus.OK).body(
-                ApiResponse.success(HttpStatus.OK.value(), response));
+        return ResponseEntity.status(response.getStatusCode()).body(response);
     }
 
     @GetMapping

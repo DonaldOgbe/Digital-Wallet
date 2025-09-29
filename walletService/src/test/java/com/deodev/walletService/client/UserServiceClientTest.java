@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cloud.contract.wiremock.AutoConfigureWireMock;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
@@ -51,13 +52,15 @@ class UserServiceClientTest {
                         .withBody(mapper.writeValueAsString(expectedResponse))));
 
         // when
-        ApiResponse<GetUserDetailsResponse> actualResponse = userServiceClient.getUser(userId);
+        ResponseEntity<ApiResponse<?>> actualResponse = userServiceClient.getUser(userId);
+
+        GetUserDetailsResponse data = mapper.convertValue(actualResponse.getBody().getData(), GetUserDetailsResponse.class);
 
         // then
-        assertThat(actualResponse.getStatusCode()).isEqualTo(HttpStatus.OK.value());
-        assertThat(actualResponse.isSuccess()).isTrue();
-        assertThat(actualResponse.getData().firstName()).isEqualTo(expectedResponse.getData().firstName());
-        assertThat(actualResponse.getData().lastName()).isEqualTo(expectedResponse.getData().lastName());
-        assertThat(actualResponse.getData().email()).isEqualTo(expectedResponse.getData().email());
+        assertThat(actualResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(actualResponse.getBody().isSuccess()).isTrue();
+        assertThat(data.firstName()).isEqualTo(expectedResponse.getData().firstName());
+        assertThat(data.lastName()).isEqualTo(expectedResponse.getData().lastName());
+        assertThat(data.email()).isEqualTo(expectedResponse.getData().email());
     }
 }

@@ -15,6 +15,7 @@ import com.deodev.walletService.rabbitmq.publisher.WalletEventsPublisher;
 import com.deodev.walletService.walletPinService.service.WalletPinService;
 import com.deodev.walletService.walletService.model.Wallet;
 import com.deodev.walletService.walletService.service.WalletService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -38,6 +39,7 @@ public class AccountService {
     private final FundReservationService fundReservationService;
     private final UserServiceClient userServiceClient;
     private final WalletPinService walletPinService;
+    private final ObjectMapper mapper;
 
     public CreateAccountResponse createAccount(String userId, Currency currency) {
 
@@ -63,14 +65,18 @@ public class AccountService {
                 .build();
     }
 
-    public GetRecipientAccountUserDetailsResponse findAccountAndUserDetails(String accountNumber, Currency currency) {
+    public ApiResponse<?> findAccountAndUserDetails(String accountNumber, Currency currency) {
         Account recipientAccount = findByAccountNumberAndCurrency(accountNumber, currency);
-        GetUserDetailsResponse userDetails = getUserDetailsFromClient(recipientAccount.getUserId());
 
-        return GetRecipientAccountUserDetailsResponse.builder()
-                .firstName(userDetails.firstName())
-                .lastName(userDetails.lastName())
-                .build();
+        ApiResponse<?> response = getUserDetailsFromClient(recipientAccount.getUserId());
+
+        if (!response.isSuccess()) {
+            return response;
+        }
+
+        GetUserDetailsResponse userDetails = mapper.convertValue(response.getData(), GetUserDetailsResponse.class);
+
+        return ApiResponse.success(HttpStatus.OK.value(), userDetails);
     }
 
     public GetUserAccountsResponse getUserAccounts(String userId) {
@@ -165,12 +171,9 @@ public class AccountService {
                 .orElseThrow(() -> new ResourceNotFoundException("Account number does not exist"));
     }
 
-    GetUserDetailsResponse getUserDetailsFromClient(UUID userId) {
+    ApiResponse<?> getUserDetailsFromClient(UUID userId) {
         try {
-            ApiResponse<GetUserDetailsResponse> response = userServiceClient.getUser(
-                    userId);
-
-            return response.getData();
+            return userServiceClient.getUser(userId).getBody();
         } catch (Exception e) {
             throw new ExternalServiceException(e.getMessage(), e);
         }

@@ -3,6 +3,7 @@ package com.deodev.walletService.client;
 import com.deodev.walletService.dto.ApiResponse;
 import com.deodev.walletService.dto.response.GetUserDetailsResponse;
 import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -15,5 +16,5 @@ import java.util.UUID;
 )
 public interface UserServiceClient {
     @GetMapping("/api/v1/users/{userId}")
-    ApiResponse<GetUserDetailsResponse> getUser(@PathVariable UUID userId);
+    ResponseEntity<ApiResponse<?>> getUser(@PathVariable UUID userId);
 }

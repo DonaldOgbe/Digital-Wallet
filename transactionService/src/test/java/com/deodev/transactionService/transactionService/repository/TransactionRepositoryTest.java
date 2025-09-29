@@ -1,5 +1,6 @@
 package com.deodev.transactionService.transactionService.repository;
 
+import com.deodev.transactionService.enums.Currency;
 import com.deodev.transactionService.enums.TransactionStatus;
 import com.deodev.transactionService.transactionService.model.Transaction;
 import org.junit.jupiter.api.Test;
@@ -25,6 +26,7 @@ class TransactionRepositoryTest {
                 .senderAccountNumber("1234567890")
                 .receiverAccountNumber("0987654321")
                 .amount(1000L)
+                .currency(Currency.NGN)
                 .status(TransactionStatus.PENDING)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())

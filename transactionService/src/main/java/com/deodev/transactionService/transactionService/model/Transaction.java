@@ -1,5 +1,6 @@
 package com.deodev.transactionService.transactionService.model;
 
+import com.deodev.transactionService.enums.Currency;
 import com.deodev.transactionService.enums.ErrorCode;
 import com.deodev.transactionService.enums.TransactionStatus;
 import jakarta.persistence.*;
@@ -29,6 +30,9 @@ public class Transaction {
 
     @Column(nullable = false)
     private Long amount;
+
+    @Column(name = "cur", nullable = false)
+    private Currency currency;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
