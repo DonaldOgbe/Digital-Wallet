@@ -6,7 +6,7 @@ import lombok.Builder;
 import java.util.UUID;
 
 @Builder
-public record P2PTransferRequest(
+public record ClientP2PTransferRequest(
         @Size(min = 10, max = 10, message = "Account number must be exactly 10 digits")
         @Pattern(regexp = "\\d+", message = "Account number must contain only digits")
         String senderAccountNumber,

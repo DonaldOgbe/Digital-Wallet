@@ -36,7 +36,7 @@ public class Transaction {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private TransactionStatus status = TransactionStatus.PENDING;
+    private TransactionStatus status;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "err_code")

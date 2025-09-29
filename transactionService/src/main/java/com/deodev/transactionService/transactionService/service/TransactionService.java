@@ -6,8 +6,9 @@ import com.deodev.transactionService.enums.Currency;
 import com.deodev.transactionService.enums.ErrorCode;
 import com.deodev.transactionService.enums.TransactionStatus;
 import com.deodev.transactionService.exception.ExternalServiceException;
-import com.deodev.transactionService.dto.request.P2PTransferRequest;
-import com.deodev.transactionService.dto.response.P2PTransferResponse;
+import com.deodev.transactionService.dto.request.ClientP2PTransferRequest;
+import com.deodev.transactionService.dto.response.ClientP2PTransferResponse;
+import com.deodev.transactionService.transactionService.dto.request.P2PTransferRequest;
 import com.deodev.transactionService.transactionService.dto.response.P2PTransferCompletedResponse;
 import com.deodev.transactionService.transactionService.model.Transaction;
 import com.deodev.transactionService.transactionService.repository.TransactionRepository;
@@ -18,6 +19,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -34,6 +36,7 @@ public class TransactionService {
                 .receiverAccountNumber(receiver)
                 .amount(amount)
                 .currency(currency)
+                .status(TransactionStatus.PENDING)
                 .build();
 
         return transactionRepository.save(transaction);
@@ -44,26 +47,9 @@ public class TransactionService {
                 request.amount(), currency);
 
         try {
-            ApiResponse<?> response = getP2PTransferResponseFromClient(request, userId);
+            ApiResponse<?> response = getP2PTransferResponseFromClient(request, userId, transaction.getId());
 
-            if (!response.isSuccess()) {
-                setFailedTransaction(transaction, response.getErrorCode());
-                return response;
-            }
-
-            P2PTransferResponse data = mapper.convertValue(response.getData(), P2PTransferResponse.class);
-            setCompletedTransaction(transaction);
-
-            return ApiResponse.success(HttpStatus.OK.value(), P2PTransferCompletedResponse.builder()
-                    .transactionId(transaction.getId())
-                    .senderAccountNumber(transaction.getSenderAccountNumber())
-                    .receiverAccountNumber(transaction.getReceiverAccountNumber())
-                    .amount(transaction.getAmount())
-                    .currency(transaction.getCurrency())
-                    .status(transaction.getStatus())
-                    .timestamp(LocalDateTime.now())
-                    .build());
-
+            return processP2PTransferResponse(response, transaction);
         } catch (Exception e) {
             setFailedTransaction(transaction, ErrorCode.P2P_TRANSFER_ERROR);
             log.error("Transaction {} failed due to exception", transaction.getId(), e);
@@ -82,15 +68,40 @@ public class TransactionService {
         transactionRepository.save(transaction);
     }
 
-    ApiResponse<?> getP2PTransferResponseFromClient(P2PTransferRequest request, String userId) {
+    ApiResponse<?> getP2PTransferResponseFromClient(P2PTransferRequest request, String userId, UUID transactionId) {
         try {
-            return walletServiceClient.p2pTransfer(request, userId).getBody();
+            return walletServiceClient.p2pTransfer(ClientP2PTransferRequest.builder()
+                            .senderAccountNumber(request.senderAccountNumber())
+                            .receiverAccountNumber(request.receiverAccountNumber())
+                            .amount(request.amount())
+                            .pin(request.pin())
+                            .transactionId(transactionId)
+                            .build(),
+                    userId).getBody();
         } catch (Exception e) {
             log.error("WalletServiceClient Error", e);
             throw new ExternalServiceException(e.getMessage(), e);
         }
     }
 
+    ApiResponse<?> processP2PTransferResponse(ApiResponse<?> response, Transaction transaction) {
+        if (!response.isSuccess()) {
+            setFailedTransaction(transaction, response.getErrorCode());
+            return response;
+        }
+
+        setCompletedTransaction(transaction);
+
+        return ApiResponse.success(HttpStatus.OK.value(), P2PTransferCompletedResponse.builder()
+                .transactionId(transaction.getId())
+                .senderAccountNumber(transaction.getSenderAccountNumber())
+                .receiverAccountNumber(transaction.getReceiverAccountNumber())
+                .amount(transaction.getAmount())
+                .currency(transaction.getCurrency())
+                .status(transaction.getStatus())
+                .timestamp(LocalDateTime.now())
+                .build());
+    }
 
 
 }

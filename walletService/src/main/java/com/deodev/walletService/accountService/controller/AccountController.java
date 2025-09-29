@@ -45,7 +45,7 @@ public class AccountController {
         );
     }
 
-    @PostMapping("/funds/p2p/transfer")
+    @PostMapping("/funds/transfer/p2p")
     public ResponseEntity<ApiResponse<?>> p2pTransfer(@Valid @RequestBody P2PTransferRequest request,
                                           @RequestHeader("X-User-Id") String userId) {
         ApiResponse<?> response = accountService.P2PTransfer(request, userId);

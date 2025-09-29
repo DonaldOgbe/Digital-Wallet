@@ -2,9 +2,9 @@ spring:
   application:
     name: transaction-service
   datasource:
-    url: ${TRANSACTION_DB_URL}
-    username: ${POSTGRES_USER}
-    password: ${POSTGRES_PASSWORD}
+    url: ${USER_DB_URL:jdbc:postgresql://localhost:5433/users_db}
+    username: ${POSTGRES_USER:postgres}
+    password: ${POSTGRES_PASSWORD:password}
   jpa:
     hibernate:
       ddl-auto: create-drop

@@ -100,13 +100,7 @@ public class AccountService {
 
             fundReservationService.setUsedReservation(reservation);
 
-            return ApiResponse.success(HttpStatus.OK.value(), P2PTransferResponse.builder()
-                    .transactionId(reservation.getTransactionId())
-                    .fundReservationId(reservation.getId())
-                    .amount(reservation.getAmount())
-                    .senderAccountNumber(reservation.getAccountNumber())
-                    .receiverAccountNumber(request.receiverAccountNumber())
-                    .build());
+            return ApiResponse.success(HttpStatus.OK.value(), "success");
         } catch (Exception e) {
             log.error("P2P Transfer failed", e);
             throw e;

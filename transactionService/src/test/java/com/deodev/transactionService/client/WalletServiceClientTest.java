@@ -1,8 +1,8 @@
 package com.deodev.transactionService.client;
 
 import com.deodev.transactionService.dto.ApiResponse;
-import com.deodev.transactionService.dto.request.P2PTransferRequest;
-import com.deodev.transactionService.dto.response.P2PTransferResponse;
+import com.deodev.transactionService.dto.request.ClientP2PTransferRequest;
+import com.deodev.transactionService.dto.response.ClientP2PTransferResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,8 +28,8 @@ class WalletServiceClientTest {
     private ObjectMapper mapper;
 
 
-    private P2PTransferRequest request;
-    private P2PTransferResponse response;
+    private ClientP2PTransferRequest request;
+    private ClientP2PTransferResponse response;
     private String sender;
     private String receiver;
     private Long amount;
@@ -46,11 +46,11 @@ class WalletServiceClientTest {
         fundReservationId = UUID.randomUUID();
         pin = "1234";
 
-        request = P2PTransferRequest.builder()
+        request = ClientP2PTransferRequest.builder()
                 .senderAccountNumber(sender).receiverAccountNumber(receiver)
                 .amount(amount).pin(pin).transactionId(transactionId).build();
 
-        response = P2PTransferResponse.builder()
+        response = ClientP2PTransferResponse.builder()
                 .transactionId(transactionId).fundReservationId(fundReservationId)
                 .amount(amount).senderAccountNumber(sender).receiverAccountNumber(receiver).build();
     }
@@ -75,7 +75,7 @@ class WalletServiceClientTest {
         ResponseEntity<ApiResponse<?>> actualResponse =
                 walletServiceClient.p2pTransfer(request, userId.toString());
 
-        P2PTransferResponse body = mapper.convertValue(actualResponse.getBody().getData(), P2PTransferResponse.class);
+        ClientP2PTransferResponse body = mapper.convertValue(actualResponse.getBody().getData(), ClientP2PTransferResponse.class);
 
         // then
         assertThat(actualResponse.getStatusCode()).isEqualTo(HttpStatus.OK);

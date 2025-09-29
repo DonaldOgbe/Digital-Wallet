@@ -11,11 +11,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-@RequiredArgsConstructor
+@RestControllerAdvice
 public class GlobalExceptionHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
@@ -94,6 +96,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(statusCode).body(ApiResponse.<ErrorResponse>builder()
                 .success(false)
                 .statusCode(statusCode.value())
+                .timestamp(LocalDateTime.now())
                 .errorCode(errorCode)
                 .data(ErrorResponse.builder()
                         .message(message)

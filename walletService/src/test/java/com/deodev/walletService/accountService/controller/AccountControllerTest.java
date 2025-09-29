@@ -177,16 +177,12 @@ class AccountControllerTest {
                         .amount(400L).pin(pin).transactionId(transactionId).build();
 
         // when & then
-        mockMvc.perform(post("/api/v1/wallets/accounts/funds/p2p/transfer")
+        mockMvc.perform(post("/api/v1/wallets/accounts/funds/transfer/p2p")
                         .header("X-User-Id", userId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.transactionId").value(transactionId.toString()))
-                .andExpect(jsonPath("$.data.fundReservationId").isNotEmpty())
-                .andExpect(jsonPath("$.data.amount").value(400L))
-                .andExpect(jsonPath("$.data.senderAccountNumber").value(sender.getAccountNumber()))
-                .andExpect(jsonPath("$.data.receiverAccountNumber").value(receiver.getAccountNumber()));
+                .andExpect(jsonPath("$.data").value("success"));
     }
 
 }
