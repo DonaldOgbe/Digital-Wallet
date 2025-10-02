@@ -37,13 +37,13 @@ public class User {
 
     @ManyToMany
     @JoinTable(
-            name = "user_roles",
-            joinColumns = @JoinColumn(name = "user_id"),
+            name = "u_roles",
+            joinColumns = @JoinColumn(name = "u_id"),
             inverseJoinColumns = @JoinColumn(name = "role_id")
     )
     private Set<Role> roles = new HashSet<>();
 
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @Column(name = "create_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     @Enumerated(EnumType.STRING)
@@ -52,7 +52,7 @@ public class User {
     @Column(nullable = false)
     private boolean verified = false;
 
-    @Column(name = "password_updated_at", nullable = false)
+    @Column(name = "pw_up_at", nullable = false)
     private Instant passwordUpdatedAt;
 
     @PrePersist

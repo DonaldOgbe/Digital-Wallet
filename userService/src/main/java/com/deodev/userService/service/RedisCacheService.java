@@ -17,7 +17,23 @@ public class RedisCacheService {
         stringRedisTemplate.opsForValue().set("passwordUpdatedAt:"+userId, instant.toString());
     }
 
+    public String getPasswordUpdatedAt(String userId) {
+        return stringRedisTemplate.opsForValue().get("passwordUpdatedAt:" + userId);
+    }
+
+    public void deletePasswordUpdatedAt(String userId) {
+        stringRedisTemplate.delete("passwordUpdatedAt:" + userId);
+    }
+
     public void cacheRefreshToken(String userId, String token, int days) {
         stringRedisTemplate.opsForValue().set("refreshToken:"+ userId, token, days, TimeUnit.DAYS);
+    }
+
+    public String getRefreshToken(String userId) {
+        return stringRedisTemplate.opsForValue().get("refreshToken:" + userId);
+    }
+
+    public void deleteRefreshToken(String userId) {
+        stringRedisTemplate.delete("refreshToken:" + userId);
     }
 }

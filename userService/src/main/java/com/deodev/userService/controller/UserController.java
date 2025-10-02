@@ -1,8 +1,10 @@
 package com.deodev.userService.controller;
 
+import com.deodev.userService.dto.request.UpdatePasswordRequest;
 import com.deodev.userService.dto.response.ApiResponse;
 import com.deodev.userService.dto.response.GetUserDetailsResponse;
 import com.deodev.userService.service.UserService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,7 +20,6 @@ public class UserController {
 
     private final UserService userService;
 
-    @PreAuthorize("hasAuthority('ROLE_USER')")
     @GetMapping("/{userId}")
     public ResponseEntity<ApiResponse<?>> getUser(@PathVariable UUID userId) {
 
@@ -26,5 +27,12 @@ public class UserController {
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(ApiResponse.success(HttpStatus.OK.value(), response));
+    }
+
+    @PatchMapping("/me/password")
+    public ResponseEntity<ApiResponse<?>> updatePassword(@Valid @RequestBody UpdatePasswordRequest request,
+                                                         @RequestHeader("X-User-Id") String userId) {
+        ApiResponse<?> response = userService.updatePassword(userId, request);
+        return ResponseEntity.status(response.getStatusCode()).body(response);
     }
 }
