@@ -97,7 +97,6 @@ public class UserService {
         String userId = user.getId().toString();
         Instant instant = user.getPasswordUpdatedAt();
 
-        redisCacheService.deleteRefreshToken(userId);
         redisCacheService.deletePasswordUpdatedAt(userId);
         redisCacheService.cachePasswordUpdatedAt(userId, instant);
     }

@@ -6,6 +6,7 @@ import com.deodev.userService.enums.UserStatus;
 import com.deodev.userService.model.User;
 import com.deodev.userService.rabbitmq.publisher.UserEventsPublisher;
 import com.deodev.userService.repository.UserRepository;
+import com.deodev.userService.service.RedisCacheService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -45,6 +46,9 @@ class AuthControllerIntegrationTest {
     @MockBean
     private UserEventsPublisher userEventsPublisher;
 
+    @MockBean
+    private RedisCacheService redisCacheService;
+
     @BeforeEach
     void setup() {
         userRepository.deleteAll(); // clean state
@@ -69,7 +73,8 @@ class AuthControllerIntegrationTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.data.email").value("johndoe@email.com"))
                 .andExpect(jsonPath("$.data.userId").isNotEmpty())
-                .andExpect(jsonPath("$.data.token").isNotEmpty());
+                .andExpect(jsonPath("$.data.accessToken").isNotEmpty())
+                .andExpect(jsonPath("$.data.refreshToken").isNotEmpty());
 
         verify(userEventsPublisher, times(1)).publishUserRegistered(captor.capture());
         User capturedUser = captor.getValue();
@@ -100,6 +105,7 @@ class AuthControllerIntegrationTest {
                         .content(objectMapper.writeValueAsString(requestBody)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.user").value("johndoe@email.com"))
-                .andExpect(jsonPath("$.data.token").isNotEmpty());
+                .andExpect(jsonPath("$.data.accessToken").isNotEmpty())
+                .andExpect(jsonPath("$.data.refreshToken").isNotEmpty());
     }
 }

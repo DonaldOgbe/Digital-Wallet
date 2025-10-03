@@ -1,6 +1,6 @@
-package com.deodev.userService.util;
+package com.deodev.apiGateway.util;
 
-import com.deodev.userService.exception.TokenValidationException;
+import com.deodev.apiGateway.exception.TokenValidationException;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.security.SignatureException;
@@ -11,6 +11,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Component;
+
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.time.Instant;

@@ -18,6 +18,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.*;
 
 @Service
@@ -46,9 +47,10 @@ public class AuthService {
 
         Map<String, Object> claims = new HashMap<>();
         claims.put("authorities", authorities);
+        claims.put("userId", userDetails.user().getId());
 
         String accessToken = jwtUtil.generateToken(claims, userDetails.getUsername());
-        String refreshToken = cacheToken(savedUser.getId(), 7);
+        String refreshToken = cacheRefreshToken(savedUser.getId());
 
         return UserRegisteredResponse.builder()
                 .userId(savedUser.getId())
@@ -66,10 +68,11 @@ public class AuthService {
 
         Map<String, Object> claims = new HashMap<>();
         claims.put("authorities", authorities);
+        claims.put("userId", userDetails.user().getId());
 
         String accessToken = jwtUtil.generateToken(claims, userDetails.getUsername());
         SecurityContextHolder.getContext().setAuthentication(jwtUtil.getAuthenticationFromToken(accessToken));
-        String refreshToken = cacheToken(userDetails.user().getId(), 7);
+        String refreshToken = cacheRefreshToken(userDetails.user().getId());
 
 
         return UserLoginResponse.builder()
@@ -92,10 +95,10 @@ public class AuthService {
                 .toList();
     }
 
-    String cacheToken(UUID id, int days) {
-        String token = UUID.randomUUID().toString();
+    String cacheRefreshToken(UUID userId) {
+        String token = jwtUtil.generateToken(userId.toString());
 
-        redisCacheService.cacheRefreshToken(String.valueOf(id), token, days);
+        redisCacheService.cacheRefreshToken(String.valueOf(userId), token, 7);
 
         return token;
     }

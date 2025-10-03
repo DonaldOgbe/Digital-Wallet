@@ -27,8 +27,13 @@ public class WalletEventsListener {
 
         switch (routingKey) {
             case WALLET_CREATED -> {
-                userService.markUserVerified(event.userId());
-                log.info("User [{}] marked as verified after wallet creation", event.userId());
+                try {
+                    userService.markUserVerified(event.userId());
+                    log.info("User [{}] marked as verified after wallet creation", event.userId());
+                } catch (Exception ex) {
+                    log.error("WALLET_CREATED event error, failed to marked user as verified, Error: {}", ex.getMessage());
+                }
+
             }
             default -> log.warn("Unknown wallet routing key: {}", routingKey);
         }
