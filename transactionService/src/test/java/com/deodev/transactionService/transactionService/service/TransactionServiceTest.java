@@ -87,7 +87,7 @@ class TransactionServiceTest {
                 .status(TransactionStatus.PENDING)
                 .build();
 
-        ApiResponse<?> failedResponse = ApiResponse.error(HttpStatus.CONTINUE.value(), ErrorCode.INSUFFICIENT_FUNDS);
+        ApiResponse<?> failedResponse = ApiResponse.error(HttpStatus.CONFLICT.value(), ErrorCode.INSUFFICIENT_FUNDS);
 
         // when
         ApiResponse<?> result = transactionService.processP2PTransferResponse(failedResponse, transaction);
