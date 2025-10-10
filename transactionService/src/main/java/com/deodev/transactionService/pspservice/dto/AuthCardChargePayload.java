@@ -1,6 +1,6 @@
 package com.deodev.transactionService.pspservice.dto;
 
-public record CardChargeDto(
+public record AuthCardChargePayload(
         String card_number,
         String expiry_month,
         String expiry_year,
@@ -9,6 +9,7 @@ public record CardChargeDto(
         Long amount,
         String email,
         String fullname,
-        String tx_ref
+        String tx_ref,
+        AuthorizationPayload authorization
 ) {
 }

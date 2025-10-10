@@ -1,6 +1,6 @@
 package com.deodev.transactionService.pspservice.dto;
 
-public record Authorization(
+public record AuthorizationPayload(
         String mode,
         String pin
 ) {

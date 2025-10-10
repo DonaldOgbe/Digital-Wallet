@@ -19,11 +19,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
-@SpringBootTest(
-        properties = {
-                "user.service.url=http://localhost:${wiremock.server.port}"
-        }
-)
+@SpringBootTest(properties = {"user.service.url=http://localhost:${wiremock.server.port}"})
 @AutoConfigureWireMock(port = 0)
 @ActiveProfiles("test")
 class UserServiceClientTest {

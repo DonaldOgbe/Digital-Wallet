@@ -17,7 +17,7 @@ public class FlutterwaveController {
 
     private final FlutterwaveService flutterwaveService;
 
-    @GetMapping("/card_type/{bin}")
+    @GetMapping("/card-type/{bin}")
     public ResponseEntity<ApiResponse<?>> getCardType(@PathVariable String bin) {
         ApiResponse<?> response = flutterwaveService.getCardType(bin);
 

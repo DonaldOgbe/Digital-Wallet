@@ -39,5 +39,5 @@ user:
 
 psp:
   flutterwave:
-    url: https://api.flutterwave.com/v3
+    url: https://api.flutterwave.com
     secret-key: ${FLUTTERWAVE_API_KEY:FLWSECK_TEST-b81dfb98d3a5fc60d0d0d9fa851fa0c1-X}
