@@ -75,6 +75,17 @@ public class GlobalExceptionHandler {
         );
     }
 
+    @ExceptionHandler(PSPException.class)
+    public ResponseEntity<?> handlePSPException(PSPException ex, HttpServletRequest request) {
+        logger.error(ex.getMessage(), ex);
+        return handleResponse(
+                HttpStatus.BAD_REQUEST,
+                ErrorCode.EXTERNAL_PSP_ERROR,
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<?> handleExceptions(Exception e, HttpServletRequest request) {
 

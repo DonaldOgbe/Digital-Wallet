@@ -2,43 +2,38 @@ package com.deodev.transactionService.transactionService.repository;
 
 import com.deodev.transactionService.enums.Currency;
 import com.deodev.transactionService.enums.TransactionStatus;
-import com.deodev.transactionService.enums.TransactionType;
-import com.deodev.transactionService.transactionService.model.Transaction;
+import com.deodev.transactionService.transactionService.model.P2PTransaction;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
 
-import static org.assertj.core.api.Assertions.*;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @DataJpaTest
-class TransactionRepositoryTest {
+class P2PTransactionRepositoryTest {
 
     @Autowired
-    private TransactionRepository transactionRepository;
+    private P2PTransactionRepository p2PTransactionRepository;
 
     @Test
     void shouldCheckTransactionExistsById() {
         // given
-        Transaction transaction = Transaction.builder()
-                .transactionType(TransactionType.P2P)
-                .userId(UUID.randomUUID())
-                .accountNumber("1234567890")
+        P2PTransaction p2PTransaction = P2PTransaction.builder()
+                .senderAccountNumber("1234567890")
+                .receiverAccountNumber("0987654321")
                 .amount(1000L)
                 .currency(Currency.NGN)
                 .status(TransactionStatus.PENDING)
-                .idempotencyKey("IDEMP-123")
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();
 
-        Transaction saved = transactionRepository.save(transaction);
+        P2PTransaction saved = p2PTransactionRepository.save(p2PTransaction);
 
         // when
-        boolean exists = transactionRepository.existsById(saved.getId());
+        boolean exists = p2PTransactionRepository.existsById(saved.getId());
 
         // then
         assertThat(exists).isTrue();

@@ -19,4 +19,12 @@ public class RedisCacheService {
         stringRedisTemplate.opsForValue().set(key, response, Duration.ofHours(24));
     }
 
+    public void cacheChargePayload(String key, String payload) {
+        stringRedisTemplate.opsForValue().set(key, payload, Duration.ofMinutes(5));
+    }
+
+    public String getCacheChargePayload(String key) {
+        return stringRedisTemplate.opsForValue().get(key);
+    }
+
 }

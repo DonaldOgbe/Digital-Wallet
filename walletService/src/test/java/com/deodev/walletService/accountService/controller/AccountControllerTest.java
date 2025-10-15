@@ -1,5 +1,6 @@
 package com.deodev.walletService.accountService.controller;
 
+import com.deodev.walletService.accountService.dto.request.AccountExistsRequest;
 import com.deodev.walletService.accountService.dto.request.P2PTransferRequest;
 import com.deodev.walletService.accountService.model.Account;
 import com.deodev.walletService.accountService.repository.AccountRepository;
@@ -183,6 +184,28 @@ class AccountControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data").value("success"));
+    }
+
+    @Test
+    void verifyAccountNumber_ShouldReturnTrue_WhenAccountExists() throws Exception {
+        // given
+        Account account = Account.builder()
+                .walletId(walletId)
+                .userId(userId)
+                .accountNumber(accountNumber)
+                .currency(Currency.USD)
+                .build();
+        accountRepository.save(account);
+
+        AccountExistsRequest request = AccountExistsRequest.builder()
+                .accountNumber(accountNumber).currency(Currency.USD).build();
+
+        // when & then
+        mockMvc.perform(post("/api/v1/wallets/accounts/verify")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data").value(true));
     }
 
 }

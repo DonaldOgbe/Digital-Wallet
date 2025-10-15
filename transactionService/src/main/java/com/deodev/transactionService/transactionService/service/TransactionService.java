@@ -1,16 +1,20 @@
 package com.deodev.transactionService.transactionService.service;
 
-import com.deodev.transactionService.client.WalletServiceClient;
+import com.deodev.transactionService.exception.ResourceNotFoundException;
+import com.deodev.transactionService.pspService.walletService.client.WalletServiceClient;
 import com.deodev.transactionService.dto.ApiResponse;
 import com.deodev.transactionService.enums.Currency;
 import com.deodev.transactionService.enums.ErrorCode;
 import com.deodev.transactionService.enums.TransactionStatus;
 import com.deodev.transactionService.exception.ExternalServiceException;
 import com.deodev.transactionService.dto.request.ClientP2PTransferRequest;
-import com.deodev.transactionService.dto.response.ClientP2PTransferResponse;
 import com.deodev.transactionService.transactionService.dto.request.P2PTransferRequest;
 import com.deodev.transactionService.transactionService.dto.response.P2PTransferCompletedResponse;
+import com.deodev.transactionService.transactionService.model.CardFundingTransaction;
+import com.deodev.transactionService.transactionService.model.P2PTransaction;
 import com.deodev.transactionService.transactionService.model.Transaction;
+import com.deodev.transactionService.transactionService.repository.CardFundingTransactionRepository;
+import com.deodev.transactionService.transactionService.repository.P2PTransactionRepository;
 import com.deodev.transactionService.transactionService.repository.TransactionRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -26,12 +30,46 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class TransactionService {
 
+    private final P2PTransactionRepository p2PTransactionRepository;
     private final TransactionRepository transactionRepository;
+    private final CardFundingTransactionRepository cardFundingTransactionRepository;
     private final WalletServiceClient walletServiceClient;
     private final ObjectMapper mapper;
 
-    public Transaction createNewTransaction(String sender, String receiver, Long amount, Currency currency) {
-        Transaction transaction = Transaction.builder()
+    // Transaction
+    public Transaction saveTransaction(Transaction transaction) {
+        return transactionRepository.save(transaction);
+    }
+
+    public Transaction getTransaction(UUID id) {
+            return transactionRepository.findById(id)
+                    .orElseThrow(() -> new ResourceNotFoundException("Transaction not Found by id: "+ id));
+    }
+
+
+    // Card Funding Transaction
+    public CardFundingTransaction saveCardFundingTransaction(CardFundingTransaction cardFundingTransaction) {
+        return cardFundingTransactionRepository.save(cardFundingTransaction);
+    }
+
+    public CardFundingTransaction getCardFundingTransaction(UUID id) {
+        return cardFundingTransactionRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Card Funding Transaction not Found by id: "+ id));
+    }
+
+    public void setFailedCardFundingTransaction(CardFundingTransaction cardFundingTransaction,
+                                                Transaction transaction, ErrorCode errorCode) {
+        cardFundingTransaction.setStatus(TransactionStatus.FAILED);
+        saveCardFundingTransaction(cardFundingTransaction);
+        transaction.setErrorCode(errorCode);
+        transaction.setStatus(TransactionStatus.FAILED);
+        saveTransaction(transaction);
+    }
+
+
+
+    public P2PTransaction createNewP2PTransaction(String sender, String receiver, Long amount, Currency currency) {
+        P2PTransaction p2PTransaction = P2PTransaction.builder()
                 .senderAccountNumber(sender)
                 .receiverAccountNumber(receiver)
                 .amount(amount)
@@ -39,33 +77,33 @@ public class TransactionService {
                 .status(TransactionStatus.PENDING)
                 .build();
 
-        return transactionRepository.save(transaction);
+        return p2PTransactionRepository.save(p2PTransaction);
     }
 
     public ApiResponse<?> processP2PTransfer(P2PTransferRequest request, String userId, Currency currency) {
-        Transaction transaction = createNewTransaction(request.senderAccountNumber(), request.receiverAccountNumber(),
+        P2PTransaction p2PTransaction = createNewP2PTransaction(request.senderAccountNumber(), request.receiverAccountNumber(),
                 request.amount(), currency);
 
         try {
-            ApiResponse<?> response = getP2PTransferResponseFromClient(request, userId, transaction.getId());
+            ApiResponse<?> response = getP2PTransferResponseFromClient(request, userId, p2PTransaction.getId());
 
-            return processP2PTransferResponse(response, transaction);
+            return processP2PTransferResponse(response, p2PTransaction);
         } catch (Exception e) {
-            setFailedTransaction(transaction, ErrorCode.P2P_TRANSFER_ERROR);
-            log.error("Transaction {} failed due to exception", transaction.getId(), e);
+            setFailedP2PTransaction(p2PTransaction, ErrorCode.P2P_TRANSFER_ERROR);
+            log.error("Transaction {} failed due to exception", p2PTransaction.getId(), e);
             throw e;
         }
     }
 
-    void setFailedTransaction(Transaction transaction, ErrorCode errorCode) {
-        transaction.setErrorCode(errorCode);
-        transaction.setStatus(TransactionStatus.FAILED);
-        transactionRepository.save(transaction);
+    void setFailedP2PTransaction(P2PTransaction p2PTransaction, ErrorCode errorCode) {
+        p2PTransaction.setErrorCode(errorCode);
+        p2PTransaction.setStatus(TransactionStatus.FAILED);
+        p2PTransactionRepository.save(p2PTransaction);
     }
 
-    void setCompletedTransaction(Transaction transaction) {
-        transaction.setStatus(TransactionStatus.COMPLETED);
-        transactionRepository.save(transaction);
+    void setSuccessfulTransaction(P2PTransaction p2PTransaction) {
+        p2PTransaction.setStatus(TransactionStatus.SUCCESSFUL);
+        p2PTransactionRepository.save(p2PTransaction);
     }
 
     ApiResponse<?> getP2PTransferResponseFromClient(P2PTransferRequest request, String userId, UUID transactionId) {
@@ -84,21 +122,21 @@ public class TransactionService {
         }
     }
 
-    ApiResponse<?> processP2PTransferResponse(ApiResponse<?> response, Transaction transaction) {
+    ApiResponse<?> processP2PTransferResponse(ApiResponse<?> response, P2PTransaction p2PTransaction) {
         if (!response.isSuccess()) {
-            setFailedTransaction(transaction, response.getErrorCode());
+            setFailedP2PTransaction(p2PTransaction, response.getErrorCode());
             return response;
         }
 
-        setCompletedTransaction(transaction);
+        setSuccessfulTransaction(p2PTransaction);
 
         return ApiResponse.success(HttpStatus.OK.value(), P2PTransferCompletedResponse.builder()
-                .transactionId(transaction.getId())
-                .senderAccountNumber(transaction.getSenderAccountNumber())
-                .receiverAccountNumber(transaction.getReceiverAccountNumber())
-                .amount(transaction.getAmount())
-                .currency(transaction.getCurrency())
-                .status(transaction.getStatus())
+                .transactionId(p2PTransaction.getId())
+                .senderAccountNumber(p2PTransaction.getSenderAccountNumber())
+                .receiverAccountNumber(p2PTransaction.getReceiverAccountNumber())
+                .amount(p2PTransaction.getAmount())
+                .currency(p2PTransaction.getCurrency())
+                .status(p2PTransaction.getStatus())
                 .timestamp(LocalDateTime.now())
                 .build());
     }

@@ -1,5 +1,6 @@
 package com.deodev.walletService.accountService.service;
 
+import com.deodev.walletService.accountService.dto.request.AccountExistsRequest;
 import com.deodev.walletService.accountService.dto.request.P2PTransferRequest;
 import com.deodev.walletService.accountService.dto.response.*;
 import com.deodev.walletService.accountService.model.Account;
@@ -25,6 +26,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static com.deodev.walletService.util.AccountNumberGenerator.*;
@@ -121,6 +123,16 @@ public class AccountService {
 
         account.setBalance(account.getBalance() - amount);
         accountRepository.save(account);
+    }
+
+    public ApiResponse<?> accountExists(AccountExistsRequest request) {
+        try {
+            findByAccountNumberAndCurrency(request.accountNumber(), request.currency());
+        } catch (ResourceNotFoundException ex) {
+            log.warn("Account Number not found, account number: {}, currency: {}", request.accountNumber(), request.currency());
+            return ApiResponse.success(HttpStatus.OK.value(), false);
+        }
+        return ApiResponse.success(HttpStatus.OK.value(), true);
     }
 
     FundReservation reserveFunds(UUID userId, P2PTransferRequest request) {

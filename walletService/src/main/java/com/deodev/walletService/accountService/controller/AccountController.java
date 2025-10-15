@@ -1,5 +1,6 @@
 package com.deodev.walletService.accountService.controller;
 
+import com.deodev.walletService.accountService.dto.request.AccountExistsRequest;
 import com.deodev.walletService.accountService.dto.request.P2PTransferRequest;
 import com.deodev.walletService.accountService.dto.response.*;
 import com.deodev.walletService.accountService.service.AccountService;
@@ -35,6 +36,13 @@ public class AccountController {
 
         return ResponseEntity.status(response.getStatusCode()).body(response);
     }
+
+    @PostMapping("/verify")
+    public ResponseEntity<ApiResponse<?>> verifyAccountNumber(@Valid @RequestBody AccountExistsRequest request) {
+        ApiResponse<?> response = accountService.accountExists(request);
+        return ResponseEntity.status((response.getStatusCode())).body(response);
+    }
+
 
     @GetMapping
     public ResponseEntity<?> getUserAccounts(@RequestHeader("X-User-Id") String userId) {

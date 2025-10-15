@@ -3,57 +3,49 @@ package com.deodev.transactionService.transactionService.model;
 import com.deodev.transactionService.enums.Currency;
 import com.deodev.transactionService.enums.ErrorCode;
 import com.deodev.transactionService.enums.TransactionStatus;
-import com.deodev.transactionService.enums.TransactionType;
 import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-@Entity
-@Table(name = "transactions")
-@Data
 @Builder
-@NoArgsConstructor
+@Data
 @AllArgsConstructor
-public class Transaction {
+@NoArgsConstructor
+@Entity
+@Table(name = "p2p_transactions")
+public class P2PTransaction {
+
     @Id
     @GeneratedValue
-    @Column(name = "id", updatable = false, nullable = false)
+    @Column(nullable = false, updatable = false)
     private UUID id;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "txn_type", nullable = false)
-    private TransactionType transactionType;
+    @Column(name = "snd_acct_num", nullable = false, length = 10)
+    private String senderAccountNumber;
 
-    @Column(name = "user_id", nullable = false)
-    private UUID userId;
+    @Column(name = "rcv_acct_num", nullable = false, length = 10)
+    private String receiverAccountNumber;
 
-    @Column(name = "acct_no", nullable = false, length = 10)
-    private String accountNumber;
-
-    @Column(name = "amount", nullable = false)
+    @Column(nullable = false)
     private Long amount;
 
-    @Enumerated(EnumType.STRING)
     @Column(name = "currency", nullable = false)
     private Currency currency;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false)
+    @Column(nullable = false)
     private TransactionStatus status;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "err_code")
     private ErrorCode errorCode;
 
-    @Column(name = "idemp_key", unique = true, nullable = false)
-    private String idempotencyKey;
-
-    @Column(name = "created_at")
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "updated_at")
+    @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
     @PrePersist
@@ -66,4 +58,5 @@ public class Transaction {
     void onUpdate() {
         updatedAt = LocalDateTime.now();
     }
+
 }

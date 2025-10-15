@@ -11,7 +11,7 @@
 	<groupId>com.deodev</groupId>
 	<artifactId>transactionService</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>transaction-service</name>
+	<name>p2PTransaction-service</name>
 	<description>Transaction Service</description>
 	<url/>
 	<licenses>
