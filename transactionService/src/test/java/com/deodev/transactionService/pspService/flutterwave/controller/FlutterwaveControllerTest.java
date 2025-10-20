@@ -1,11 +1,16 @@
 package com.deodev.transactionService.pspService.flutterwave.controller;
 
-import com.deodev.transactionService.enums.CardType;
-import com.deodev.transactionService.enums.Currency;
+import com.deodev.transactionService.dto.ApiResponse;
+import com.deodev.transactionService.enums.*;
 import com.deodev.transactionService.pspService.flutterwave.client.FlutterwaveClient;
 import com.deodev.transactionService.pspService.flutterwave.dto.request.InitiateChargeCardRequest;
+import com.deodev.transactionService.pspService.flutterwave.dto.request.VerifyChargeCardRequest;
+import com.deodev.transactionService.pspService.flutterwave.dto.response.VerifyChargeCardResponse;
 import com.deodev.transactionService.pspService.walletService.service.WalletService;
 import com.deodev.transactionService.redis.RedisCacheService;
+import com.deodev.transactionService.transactionService.model.CardFundingTransaction;
+import com.deodev.transactionService.transactionService.model.Transaction;
+import com.deodev.transactionService.transactionService.service.TransactionService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,8 +28,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -41,6 +47,9 @@ class FlutterwaveControllerTest {
     @Autowired
     private ObjectMapper mapper;
 
+    @Autowired
+    private TransactionService transactionService;
+
     @MockBean
     private FlutterwaveClient flutterwaveClient;
 
@@ -52,6 +61,8 @@ class FlutterwaveControllerTest {
 
     private String bin;
     private Map<String, Object> flutterwaveResponse;
+    private UUID userId;
+    private String accountNumber;
 
     @BeforeEach
     void setup() {
@@ -63,6 +74,12 @@ class FlutterwaveControllerTest {
         data.put("card_type", "MASTERCARD");
         data.put("issuer", "GTBank");
         flutterwaveResponse.put("data", data);
+
+        accountNumber = "0123456789";
+        userId = UUID.randomUUID();
+
+
+
     }
 
     @Test
@@ -116,4 +133,76 @@ class FlutterwaveControllerTest {
                 .andExpect(status().isOk());
 
     }
+
+    @Test
+    void shouldReturnSuccessResponse_WhenVerifyCardFundingIsSuccessful() throws Exception {
+        // given
+
+        Transaction transaction = Transaction.builder()
+                .transactionType(TransactionType.CARD_FUND)
+                .userId(userId)
+                .accountNumber(accountNumber)
+                .amount(1000L)
+                .currency(Currency.NGN)
+                .status(TransactionStatus.PENDING)
+                .idempotencyKey("12345")
+                .build();
+
+        Transaction savedTransaction = transactionService.saveTransaction(transaction);
+
+        CardFundingTransaction cardFundingTransaction =  CardFundingTransaction.builder()
+                .id(UUID.randomUUID())
+                .transactionId(savedTransaction.getId())
+                .accountNumber(accountNumber)
+                .status(TransactionStatus.PENDING)
+                .paymentGateway(PaymentGateway.FLUTTERWAVE)
+                .build();
+
+        CardFundingTransaction saved = transactionService.saveCardFundingTransaction(cardFundingTransaction);
+
+        String idempotencyKey = UUID.randomUUID().toString();
+
+        VerifyChargeCardRequest request = VerifyChargeCardRequest.builder()
+                .id(288192886L)
+                .txn_ref(cardFundingTransaction.getId().toString())
+                .build();
+
+        Map<String, Object> flutterwaveResponse = Map.of(
+                "status", "success",
+                "message", "",
+                "data", Map.of(
+                        "id", 288192886,
+                        "txn_ref", cardFundingTransaction.getId().toString(),
+                        "flw_ref", "FLW-455DJ",
+                        "processor_response", "Approved Successfully",
+                        "status", "successful"
+                ));
+
+        when(redisCacheService.getCacheResponse("flw_verify_card_funding:" + idempotencyKey))
+                .thenReturn(null);
+
+        when(flutterwaveClient.verifyCharge(any())).thenReturn(flutterwaveResponse);
+
+        // when
+        mockMvc.perform(post("/api/v1/psp/flutterwave/card/verify")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Idempotency-Key", idempotencyKey)
+                        .content(new ObjectMapper().writeValueAsString(request)))
+                // then
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.status").value("successful"))
+                .andExpect(jsonPath("$.data.message").value("Approved Successfully"))
+                .andExpect(jsonPath("$.data.currency").value("NGN"))
+                .andExpect(jsonPath("$.data.id").value(288192886));
+
+        // verify cache interactions
+        verify(redisCacheService).getCacheResponse("flw_verify_card_funding:" + idempotencyKey);
+        verify(redisCacheService).cacheResponse(eq("flw_verify_card_funding:" + idempotencyKey), anyString());
+
+        Transaction updated = transactionService.getTransaction(savedTransaction.getId());
+
+        assertThat(updated.getStatus()).isEqualTo(TransactionStatus.SUCCESSFUL);
+    }
+
 }

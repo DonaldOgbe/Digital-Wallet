@@ -1,6 +1,5 @@
 package com.deodev.walletService.rabbitmq.publisher;
 
-import com.deodev.walletService.enums.ErrorCode;
 import com.deodev.walletService.rabbitmq.events.WalletCreatedEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;

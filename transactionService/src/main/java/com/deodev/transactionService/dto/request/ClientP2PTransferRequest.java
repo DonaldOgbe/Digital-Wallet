@@ -24,6 +24,9 @@ public record ClientP2PTransferRequest(
         String pin,
 
         @NotNull(message = "Transaction ID is required")
-        UUID transactionId
+        UUID transactionId,
+
+        @NotNull(message = "User ID is required")
+        UUID userId
 ) {
 }

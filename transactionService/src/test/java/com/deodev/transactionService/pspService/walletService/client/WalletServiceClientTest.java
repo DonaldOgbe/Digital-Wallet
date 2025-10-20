@@ -36,6 +36,7 @@ class WalletServiceClientTest {
     private UUID transactionId;
     private String pin;
     private UUID fundReservationId;
+    private UUID userId;
 
     @BeforeEach
     void setup() {
@@ -44,11 +45,12 @@ class WalletServiceClientTest {
         amount = 100L;
         transactionId = UUID.randomUUID();
         fundReservationId = UUID.randomUUID();
+        userId = UUID.randomUUID();
         pin = "1234";
 
         request = ClientP2PTransferRequest.builder()
                 .senderAccountNumber(sender).receiverAccountNumber(receiver)
-                .amount(amount).pin(pin).transactionId(transactionId).build();
+                .amount(amount).pin(pin).transactionId(transactionId).userId(userId).build();
 
         response = ClientP2PTransferResponse.builder()
                 .transactionId(transactionId).fundReservationId(fundReservationId)
@@ -59,12 +61,11 @@ class WalletServiceClientTest {
     @Test
     void shouldSendTransferFundsRequestAndParseResponse() throws Exception {
         // given
-        UUID userId = UUID.randomUUID();
+
         ResponseEntity<ApiResponse<?>> expectedResponse = ResponseEntity.status(HttpStatus.OK.value())
                 .body(ApiResponse.success(HttpStatus.OK.value(), response));
 
-        stubFor(post(urlEqualTo("/api/v1/wallets/accounts/funds/p2p/transfer"))
-                .withHeader("X-User-Id", equalTo(userId.toString()))
+        stubFor(post(urlEqualTo("/api/v1/wallets/accounts/p2p/transfer"))
                 .withRequestBody(equalTo(mapper.writeValueAsString(request)))
                 .willReturn(aResponse()
                         .withStatus(HttpStatus.OK.value())
@@ -73,8 +74,7 @@ class WalletServiceClientTest {
 
         // when
         ResponseEntity<ApiResponse<?>> actualResponse =
-                walletServiceClient.p2pTransfer(request, userId.toString());
-
+                walletServiceClient.p2pTransfer(request);
         ClientP2PTransferResponse body = mapper.convertValue(actualResponse.getBody().getData(), ClientP2PTransferResponse.class);
 
         // then

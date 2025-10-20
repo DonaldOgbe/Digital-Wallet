@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -21,6 +22,7 @@ class P2PTransactionRepositoryTest {
     void shouldCheckTransactionExistsById() {
         // given
         P2PTransaction p2PTransaction = P2PTransaction.builder()
+                .transactionId(UUID.randomUUID())
                 .senderAccountNumber("1234567890")
                 .receiverAccountNumber("0987654321")
                 .amount(1000L)

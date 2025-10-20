@@ -10,8 +10,8 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class OutboxService {
 
-    private ObjectMapper mapper;
-    private OutboxRepository outboxRepository;
+    private final ObjectMapper mapper;
+    private final OutboxRepository outboxRepository;
 
     public <T> void createScheduledEvent(String eventType, T event) throws Exception{
         String payload = mapper.writeValueAsString(event);

@@ -157,7 +157,7 @@ public class FlutterwaveCardService {
                 setSuccessfulCardFunding(cardFundingTransaction, transaction);
                 yield ApiResponse.success(HttpStatus.OK.value(), VerifyChargeCardResponse.builder()
                         .status((String) response.get("data_status"))
-                        .message((String) response.get("message"))
+                        .message((String) response.get("processor_response"))
                         .id(Long.valueOf((Integer) response.get("id")))
                         .txn_ref(transaction.getId().toString())
                         .flw_ref((String) response.get("flw_ref"))
@@ -167,7 +167,7 @@ public class FlutterwaveCardService {
             }
             case "pending" -> ApiResponse.success(HttpStatus.OK.value(), VerifyChargeCardResponse.builder()
                     .status((String) response.get("data_status"))
-                    .message((String) response.get("message"))
+                    .message((String) response.get("processor_response"))
                     .id(Long.valueOf((Integer) response.get("id")))
                     .txn_ref(transaction.getId().toString())
                     .flw_ref((String) response.get("flw_ref"))
@@ -178,7 +178,7 @@ public class FlutterwaveCardService {
                 transactionService.setFailedCardFundingTransaction(cardFundingTransaction, transaction, ErrorCode.EXTERNAL_PSP_ERROR);
                 yield ApiResponse.success(HttpStatus.OK.value(), VerifyChargeCardResponse.builder()
                         .status((String) response.get("data_status"))
-                        .message((String) response.get("message"))
+                        .message((String) response.get("processor_response"))
                         .id(Long.valueOf((Integer) response.get("id")))
                         .txn_ref(transaction.getId().toString())
                         .flw_ref((String) response.get("flw_ref"))

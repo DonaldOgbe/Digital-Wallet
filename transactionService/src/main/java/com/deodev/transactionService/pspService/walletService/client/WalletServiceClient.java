@@ -11,9 +11,8 @@ import org.springframework.web.bind.annotation.*;
         name = "wallet-service",
         url = "${wallet.service.url}")
 public interface WalletServiceClient {
-    @PostMapping("/api/v1/wallets/accounts/funds/p2p/transfer")
-    ResponseEntity<ApiResponse<?>> p2pTransfer(@RequestBody ClientP2PTransferRequest request,
-                                               @RequestHeader("X-User-Id") String userId);
+    @PostMapping("/api/v1/wallets/accounts/p2p/transfer")
+    ResponseEntity<ApiResponse<?>> p2pTransfer(@RequestBody ClientP2PTransferRequest request);
 
     @PostMapping("/api/v1/wallets/accounts/verify")
     ResponseEntity<ApiResponse<?>> verifyAccountNumber(@RequestBody AccountExistsRequest request);

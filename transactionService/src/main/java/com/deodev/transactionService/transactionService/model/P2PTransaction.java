@@ -22,6 +22,9 @@ public class P2PTransaction {
     @Column(nullable = false, updatable = false)
     private UUID id;
 
+    @Column(name = "txn_id", nullable = false, updatable = false)
+    private UUID transactionId;
+
     @Column(name = "snd_acct_num", nullable = false, length = 10)
     private String senderAccountNumber;
 
@@ -37,10 +40,6 @@ public class P2PTransaction {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private TransactionStatus status;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "err_code")
-    private ErrorCode errorCode;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

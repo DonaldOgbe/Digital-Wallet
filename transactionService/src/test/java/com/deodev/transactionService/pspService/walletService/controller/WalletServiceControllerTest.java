@@ -1,9 +1,9 @@
-package com.deodev.transactionService.transactionService.controller;
+package com.deodev.transactionService.pspService.walletService.controller;
 
-import com.deodev.transactionService.pspService.walletService.client.WalletServiceClient;
 import com.deodev.transactionService.dto.ApiResponse;
 import com.deodev.transactionService.enums.Currency;
 import com.deodev.transactionService.enums.TransactionStatus;
+import com.deodev.transactionService.pspService.walletService.client.WalletServiceClient;
 import com.deodev.transactionService.redis.RedisCacheService;
 import com.deodev.transactionService.transactionService.dto.request.P2PTransferRequest;
 import com.deodev.transactionService.transactionService.dto.response.P2PTransferCompletedResponse;
@@ -23,15 +23,17 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ActiveProfiles("test")
 @SpringBootTest
 @AutoConfigureMockMvc
-class P2PTransactionControllerIntegrationTest {
+class WalletServiceControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -65,19 +67,18 @@ class P2PTransactionControllerIntegrationTest {
     @Test
     void p2pTransfer_ShouldReturnSuccess_WhenServiceReturnsSuccess() throws Exception {
         // given
-        P2PTransferRequest request = new P2PTransferRequest(sender, receiver, amount, pin);
+        P2PTransferRequest request = new P2PTransferRequest(sender, receiver, amount, currency, pin);
 
         ResponseEntity<ApiResponse<?>> clientResponse = ResponseEntity.status(HttpStatus.OK.value())
                 .body(ApiResponse.success(HttpStatus.OK.value(), "success"));
 
         when(redisCacheService.getCacheResponse(any())).thenReturn(null);
-        when(walletServiceClient.p2pTransfer(any(), any())).thenReturn(clientResponse);
+        when(walletServiceClient.p2pTransfer(any())).thenReturn(clientResponse);
 
         // when & then
-        mockMvc.perform(post("/api/v1/transactions/transfer/p2p")
+        mockMvc.perform(post("/api/v1/psp/wallet-service/p2p/transfer")
                         .header("X-User-Id", userId.toString())
                         .header("Idempotency-Key", UUID.randomUUID().toString())
-                        .param("currency", "NGN")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -93,7 +94,7 @@ class P2PTransactionControllerIntegrationTest {
     void p2pTransfer_ShouldReturnCachedResponse_WhenCacheExists() throws Exception {
         // given
         UUID transactionId = UUID.randomUUID();
-        P2PTransferRequest request = new P2PTransferRequest(sender, receiver, amount, pin);
+        P2PTransferRequest request = new P2PTransferRequest(sender, receiver, amount, currency, pin);
 
         P2PTransferCompletedResponse completed = P2PTransferCompletedResponse.builder()
                 .transactionId(transactionId)
@@ -114,10 +115,9 @@ class P2PTransactionControllerIntegrationTest {
                 .thenReturn(cachedJson);
 
         // when & then
-        mockMvc.perform(post("/api/v1/transactions/transfer/p2p")
+        mockMvc.perform(post("/api/v1/psp/wallet-service/p2p/transfer")
                         .header("X-User-Id", "test-user")
                         .header("Idempotency-Key", idempotencyKey)
-                        .param("currency", "NGN")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())

@@ -1,5 +1,6 @@
 package com.deodev.transactionService.transactionService.dto.request;
 
+import com.deodev.transactionService.enums.Currency;
 import jakarta.validation.constraints.*;
 import lombok.Builder;
 
@@ -16,6 +17,9 @@ public record P2PTransferRequest(
         @NotNull(message = "Amount is required")
         @Positive(message = "Amount must be greater than zero")
         Long amount,
+
+        @NotNull(message = "Currency is required")
+        Currency currency,
 
         @Size(min = 4, max = 4, message = "Account number must be exactly 4 digits")
         @Pattern(regexp = "\\d+", message = "Account number must contain only digits")
