@@ -28,7 +28,7 @@ class CardFundingTransactionRepositoryTest {
                 .cardType(CardType.MASTERCARD)
                 .paymentGateway(PaymentGateway.FLUTTERWAVE)
                 .gatewayReference("REF-12345")
-                .gatewayTransactionId("GWID-12345")
+                .gatewayTransactionId(1245867L)
                 .authorizationCode("AUTH-9999")
                 .status(TransactionStatus.PENDING)
                 .build();

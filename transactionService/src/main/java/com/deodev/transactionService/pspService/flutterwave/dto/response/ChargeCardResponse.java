@@ -4,9 +4,9 @@ import lombok.Builder;
 
 
 @Builder
-public record InitiateChargeCardResponse(
+public record ChargeCardResponse(
         String txn_ref,
-        String id,
+        Long id,
         String flw_ref,
         String mode,
         String redirect,

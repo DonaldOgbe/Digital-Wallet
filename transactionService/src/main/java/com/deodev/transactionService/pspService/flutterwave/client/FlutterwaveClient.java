@@ -61,8 +61,11 @@ public class FlutterwaveClient {
                     .block();
             validateResponse(response, "Empty response body from charge card");
             return response;
+        } catch (WebClientResponseException e) {
+            log.error("Flutterwave API error while calling charge card  {}", e.getResponseBodyAsString(), e);
+            throw new ExternalServiceException("Flutterwave API error while calling charge card", e);
         } catch (Exception e) {
-            log.error("Error calling Flutterwave chargeCard API: {}", e.getMessage(), e);
+            log.error("Unexpected error while charging card: {}", e.getMessage(), e);
             throw e;
         }
     }
@@ -80,13 +83,16 @@ public class FlutterwaveClient {
 
             validateResponse(response, "Empty response body from validate charge card");
             return response;
+        } catch (WebClientResponseException e) {
+            log.error("Flutterwave API error while validating card charge for flw_ref: {}, {}", request.flw_ref(), e.getResponseBodyAsString(), e);
+            throw new ExternalServiceException("Flutterwave API error validating card charge", e);
         } catch (Exception e) {
-            log.error("Error validating charge Flutterwave charge: {}, {}", request, e.getMessage(), e);
+            log.error("Error validating card charge Flutterwave charge for flw_ref: {}, {}", request.flw_ref(), e.getMessage(), e);
             throw e;
         }
     };
 
-    public Map<String, Object> verifyCharge(String transactionId) {
+    public Map<String, Object> verifyCharge(Long transactionId) {
         try {
             Map<String, Object> response = webClient.get()
                     .uri("/v3/transactions/{transactionId}/verify", transactionId)
@@ -98,8 +104,11 @@ public class FlutterwaveClient {
 
             validateResponse(response, "Empty response body from verify charge");
             return response;
+        } catch (WebClientResponseException e) {
+            log.error("Flutterwave API error while verifying card charge for id: {}, {}", transactionId, e.getResponseBodyAsString(), e);
+            throw new ExternalServiceException("Flutterwave API error while verifying card charge", e);
         } catch (Exception e) {
-            log.error("Error verifying Flutterwave charge: {}", e.getMessage(), e);
+            log.error("Unexpected Error while verifying card charge for id: {}, {}", transactionId, e.getMessage(), e);
             throw e;
         }
 

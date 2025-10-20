@@ -1,13 +1,12 @@
 package com.deodev.transactionService.pspService.flutterwave.service;
 
 import com.deodev.transactionService.pspService.flutterwave.client.FlutterwaveClient;
-import com.deodev.transactionService.pspService.flutterwave.dto.ChargeCardPayload;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.deodev.transactionService.rabbitmq.outbox.service.OutboxService;
+import com.deodev.transactionService.transactionService.service.TransactionService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.HashMap;
@@ -23,8 +22,11 @@ class FlutterwaveCardServiceTest {
     @Mock
     private FlutterwaveClient flutterwaveClient;
 
-    @Spy
-    private ObjectMapper mapper = new ObjectMapper();
+    @Mock
+    private TransactionService transactionService;
+
+    @Mock
+    private OutboxService outboxService;
 
     @InjectMocks
     private FlutterwaveCardService flutterwaveCardService;
@@ -90,7 +92,6 @@ class FlutterwaveCardServiceTest {
     @Test
     void chargeCard_ShouldReturnFilteredResponse_WhenSuccess() throws Exception {
         // given
-        String secretKey = "FLWSECK_TEST";
         String encryptedPayload = "ENCRYPTED_STRING";
 
         Map<String, Object> flutterwaveResponse = Map.of(

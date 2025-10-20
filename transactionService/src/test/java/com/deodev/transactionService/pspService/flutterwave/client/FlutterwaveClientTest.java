@@ -40,7 +40,7 @@ class FlutterwaveClientTest {
     @BeforeEach
     void setup() {
         bin = "564000";
-        secretKey = "FLWSECK_TEST-123456";
+        secretKey = "FLWSECK_TEST-12345";
 
         resolveCardJsonResponse = """
                 {
@@ -145,7 +145,6 @@ class FlutterwaveClientTest {
         OtpValidateRequest request = OtpValidateRequest.builder()
                 .otp("123456")
                 .flw_ref("FLW247999960")
-                .type("card")
                 .build();
 
         String requestBody = mapper.writeValueAsString(request);
@@ -219,7 +218,7 @@ class FlutterwaveClientTest {
     @Test
     void verifyCharge_shouldReturnSuccessfulResponse() {
         // given
-        String transactionId = "288200108";
+        Long transactionId = 288200108L;
 
         String verifyChargeJsonResponse = """
             {

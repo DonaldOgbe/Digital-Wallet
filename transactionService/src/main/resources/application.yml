@@ -7,7 +7,7 @@ spring:
     password: ${POSTGRES_PASSWORD:password}
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: update
     show-sql: true
   rabbitmq:
     host: localhost
@@ -31,7 +31,7 @@ server:
 
 wallet:
   service:
-    url: ${WALLET_SERVICE_PORT:8092}
+    url: ${WALLET_SERVICE_PORT:localhost:8092}
 
 user:
   service:

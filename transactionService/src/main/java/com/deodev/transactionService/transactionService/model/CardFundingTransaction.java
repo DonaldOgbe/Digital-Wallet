@@ -15,11 +15,10 @@ import java.util.UUID;
 public class CardFundingTransaction {
 
     @Id
-    @GeneratedValue
     @Column(name = "id", updatable = false, nullable = false)
     private UUID id;
 
-    @Column(name = "txn_id", nullable = false)
+    @Column(name = "txn_id", nullable = false, updatable = false)
     private UUID transactionId;
 
     @Column(name = "acct_no", nullable = false, length = 10)
@@ -40,7 +39,7 @@ public class CardFundingTransaction {
     private String gatewayReference;
 
     @Column(name = "gateway_txn_id")
-    private String gatewayTransactionId;
+    private Long gatewayTransactionId;
 
     @Column(name = "auth_code")
     private String authorizationCode;

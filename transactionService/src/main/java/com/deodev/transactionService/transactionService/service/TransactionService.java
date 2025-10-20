@@ -21,6 +21,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -46,7 +47,6 @@ public class TransactionService {
                     .orElseThrow(() -> new ResourceNotFoundException("Transaction not Found by id: "+ id));
     }
 
-
     // Card Funding Transaction
     public CardFundingTransaction saveCardFundingTransaction(CardFundingTransaction cardFundingTransaction) {
         return cardFundingTransactionRepository.save(cardFundingTransaction);
@@ -57,6 +57,7 @@ public class TransactionService {
                 .orElseThrow(() -> new ResourceNotFoundException("Card Funding Transaction not Found by id: "+ id));
     }
 
+    @Transactional
     public void setFailedCardFundingTransaction(CardFundingTransaction cardFundingTransaction,
                                                 Transaction transaction, ErrorCode errorCode) {
         cardFundingTransaction.setStatus(TransactionStatus.FAILED);
@@ -66,7 +67,14 @@ public class TransactionService {
         saveTransaction(transaction);
     }
 
-
+    @Transactional
+    public void setSuccessfulCardFundingTransaction(CardFundingTransaction cardFundingTransaction,
+                                                    Transaction transaction) {
+        cardFundingTransaction.setStatus(TransactionStatus.SUCCESSFUL);
+        transaction.setStatus(TransactionStatus.SUCCESSFUL);
+        saveCardFundingTransaction(cardFundingTransaction);
+        saveTransaction(transaction);
+    }
 
     public P2PTransaction createNewP2PTransaction(String sender, String receiver, Long amount, Currency currency) {
         P2PTransaction p2PTransaction = P2PTransaction.builder()

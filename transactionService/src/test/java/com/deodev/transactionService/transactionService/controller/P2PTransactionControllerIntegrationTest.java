@@ -124,6 +124,6 @@ class P2PTransactionControllerIntegrationTest {
                 .andExpect(jsonPath("$.data.transactionId").value(transactionId.toString()))
                 .andExpect(jsonPath("$.data.senderAccountNumber").value("1234567890"))
                 .andExpect(jsonPath("$.data.receiverAccountNumber").value("0987654321"))
-                .andExpect(jsonPath("$.data.status").value("COMPLETED"));
+                .andExpect(jsonPath("$.data.status").value("SUCCESSFUL"));
     }
 }

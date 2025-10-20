@@ -117,9 +117,6 @@ class P2PTransactionServiceTest {
 
         ApiResponse<?> successResponse = ApiResponse.success(200, mockResponseData);
 
-        when(objectMapper.convertValue(successResponse.getData(), ClientP2PTransferResponse.class))
-                .thenReturn(mockResponseData);
-
         // when
         ApiResponse<?> result = transactionService.processP2PTransferResponse(successResponse, p2PTransaction);
 
@@ -128,7 +125,6 @@ class P2PTransactionServiceTest {
         assertThat(p2PTransaction.getStatus()).isEqualTo(TransactionStatus.SUCCESSFUL);
 
         verify(p2PTransactionRepository).save(p2PTransaction);
-        verify(objectMapper).convertValue(successResponse.getData(), ClientP2PTransferResponse.class);
     }
 
 }
