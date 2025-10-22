@@ -1,9 +1,6 @@
 package com.deodev.userService.config;
 
-import org.springframework.amqp.core.Binding;
-import org.springframework.amqp.core.BindingBuilder;
-import org.springframework.amqp.core.Queue;
-import org.springframework.amqp.core.TopicExchange;
+import org.springframework.amqp.core.*;
 import org.springframework.amqp.rabbit.annotation.EnableRabbit;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -11,9 +8,6 @@ import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
-import javax.management.Query;
-
 import static com.deodev.userService.rabbitmq.constants.keys.*;
 
 @Configuration
@@ -33,28 +27,40 @@ public class RabbitConfig {
         return rabbitTemplate;
     }
 
+    // DLX
+
+    @Bean
+    public DirectExchange dlx() {
+        return new DirectExchange(DLX);
+    }
+
+    // User
+
     @Bean
     public TopicExchange userExchange() {
         return new TopicExchange(USER_EXCHANGE);
     }
 
-    // WALLET EVENTS
+    // Wallet Events
 
     @Bean
-    public Queue userWalletEventsQueue() {
-        return new Queue(USER_WALLET_QUEUE, true);
-    }
-
-    @Bean
-    public TopicExchange walletEventsExchange() {
+    public TopicExchange walletExchange() {
         return new TopicExchange(WALLET_EXCHANGE);
     }
 
     @Bean
-    public Binding userWalletEventsBinding(Queue userWalletEventsQueue,
-                                           TopicExchange walletEventsExchange) {
-        return BindingBuilder.bind(userWalletEventsQueue)
-                .to(walletEventsExchange)
-                .with(WALLET_WILDCARD_KEY);
+    public Queue walletQueue() {
+        return  QueueBuilder.durable(WALLET_QUEUE)
+                .withArgument("x-dead-letter-exchange", DLX)
+                .withArgument("x-dead-letter-routing-key", WALLET_DLQ)
+                .build();
+    }
+
+    @Bean
+    public Binding userWalletEventsBinding(Queue walletQueue,
+                                           TopicExchange walletExchange) {
+        return BindingBuilder.bind(walletQueue)
+                .to(walletExchange)
+                .with(WALLET_WILDCARD);
     }
 }

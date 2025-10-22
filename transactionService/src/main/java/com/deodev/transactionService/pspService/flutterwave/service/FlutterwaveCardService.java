@@ -2,10 +2,7 @@ package com.deodev.transactionService.pspService.flutterwave.service;
 
 import com.deodev.transactionService.dto.ApiResponse;
 import com.deodev.transactionService.dto.ErrorResponse;
-import com.deodev.transactionService.enums.ErrorCode;
-import com.deodev.transactionService.enums.PaymentGateway;
-import com.deodev.transactionService.enums.TransactionStatus;
-import com.deodev.transactionService.enums.TransactionType;
+import com.deodev.transactionService.enums.*;
 import com.deodev.transactionService.exception.ExternalServiceException;
 import com.deodev.transactionService.exception.PSPException;
 import com.deodev.transactionService.pspService.flutterwave.client.FlutterwaveClient;
@@ -159,8 +156,9 @@ public class FlutterwaveCardService {
                         .status((String) response.get("data_status"))
                         .message((String) response.get("processor_response"))
                         .id(Long.valueOf((Integer) response.get("id")))
-                        .txn_ref(transaction.getId().toString())
+                        .txn_ref(cardFundingTransaction.getId().toString())
                         .flw_ref((String) response.get("flw_ref"))
+                        .transactionId(transaction.getId().toString())
                         .amount(transaction.getAmount())
                         .currency(transaction.getCurrency())
                         .build());
@@ -169,8 +167,9 @@ public class FlutterwaveCardService {
                     .status((String) response.get("data_status"))
                     .message((String) response.get("processor_response"))
                     .id(Long.valueOf((Integer) response.get("id")))
-                    .txn_ref(transaction.getId().toString())
+                    .txn_ref(cardFundingTransaction.getId().toString())
                     .flw_ref((String) response.get("flw_ref"))
+                    .transactionId(transaction.getId().toString())
                     .amount(transaction.getAmount())
                     .currency(transaction.getCurrency())
                     .build());
@@ -180,21 +179,28 @@ public class FlutterwaveCardService {
                         .status((String) response.get("data_status"))
                         .message((String) response.get("processor_response"))
                         .id(Long.valueOf((Integer) response.get("id")))
-                        .txn_ref(transaction.getId().toString())
+                        .txn_ref(cardFundingTransaction.getId().toString())
                         .flw_ref((String) response.get("flw_ref"))
+                        .transactionId(transaction.getId().toString())
                         .amount(transaction.getAmount())
                         .currency(transaction.getCurrency())
                         .build());
             }
         };
     }
+
     @Transactional
     void setSuccessfulCardFunding(CardFundingTransaction cardFundingTransaction, Transaction transaction) throws Exception {
         transactionService.setSuccessfulCardFundingTransaction(cardFundingTransaction, transaction);
 
+        String eventId = UUID.randomUUID().toString();
+
         outboxService.createScheduledEvent(
+                eventId,
                 ACCOUNT_FUNDED,
+                EventType.ACCOUNT_FUNDED,
                 AccountFundedEvent.builder()
+                        .eventId(eventId)
                         .accountNumber(transaction.getAccountNumber())
                         .amount(transaction.getAmount())
                         .build());

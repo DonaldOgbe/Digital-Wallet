@@ -178,7 +178,7 @@ class AccountControllerTest {
                         .amount(400L).pin(pin).transactionId(transactionId).build();
 
         // when & then
-        mockMvc.perform(post("/api/v1/wallets/accounts/funds/transfer/p2p")
+        mockMvc.perform(post("/api/v1/wallets/accounts/funds/p2p/transfer")
                         .header("X-User-Id", userId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))

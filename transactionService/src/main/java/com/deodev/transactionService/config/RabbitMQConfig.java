@@ -28,30 +28,8 @@ public class RabbitMQConfig {
     }
 
     @Bean
-    public TopicExchange transactionEventsExchange() {
+    public TopicExchange transactionExchange() {
         return new TopicExchange(TRANSACTION_EXCHANGE);
     }
-
-
-    // Wallet Events
-    @Bean
-    public TopicExchange walletEventsExchange() {
-        return new TopicExchange(WALLET_EXCHANGE);
-    }
-
-    @Bean
-    public Queue transactionWalletEventsQueue() {
-        return new Queue(TRANSACTION_WALLET_QUEUE, true);
-    }
-
-    @Bean
-    public Binding transactionWalletEventsBinding(Queue transactionWalletEventsQueue,
-                                                  TopicExchange walletEventsExchange) {
-        return BindingBuilder.bind(transactionWalletEventsQueue)
-                .to(walletEventsExchange)
-                .with(WALLET_WILDCARD_KEY);
-    }
-
-
 
 }

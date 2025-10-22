@@ -22,6 +22,7 @@ class CardFundingTransactionRepositoryTest {
     void shouldCheckTransactionExistsByGatewayReference() {
         // given
         CardFundingTransaction txn = CardFundingTransaction.builder()
+                .id(UUID.randomUUID())
                 .transactionId(UUID.randomUUID())
                 .accountNumber("1234567890")
                 .cardLast4("1234")

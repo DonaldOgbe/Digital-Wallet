@@ -10,6 +10,7 @@ public record VerifyChargeCardResponse(
         Long id,
         String txn_ref,
         String flw_ref,
+        String transactionId,
         Long amount,
         Currency currency
 ) {

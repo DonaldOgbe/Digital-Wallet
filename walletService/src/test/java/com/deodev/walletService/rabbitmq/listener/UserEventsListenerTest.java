@@ -31,24 +31,24 @@ class UserEventsListenerTest {
     }
 
     @Test
-    void handleUserLifecycleEvents_ShouldCallCreateWallet_WhenUserCreatedEvent() {
+    void handleUserEvents_ShouldCallCreateWallet_WhenUserCreatedEvent() {
         // given
         UserRegisteredEvent event = new UserRegisteredEvent(userId);
 
         // when
-        userEventsListener.handleUserLifecycleEvents(event, USER_CREATED);
+        userEventsListener.handleUserEvents(event, USER_CREATED);
 
         // then
         verify(walletService).createWallet(userId.toString());
     }
 
     @Test
-    void handleUserLifecycleEvents_ShouldNotCallWalletService_WhenRoutingKeyUnknown() {
+    void handleUserEvents_ShouldNotCallWalletService_WhenRoutingKeyUnknown() {
         // given
         UserRegisteredEvent event = new UserRegisteredEvent(userId);
 
         // when
-        userEventsListener.handleUserLifecycleEvents(event, "UNKNOWN_KEY");
+        userEventsListener.handleUserEvents(event, "UNKNOWN_KEY");
 
         // then
         verifyNoInteractions(walletService);

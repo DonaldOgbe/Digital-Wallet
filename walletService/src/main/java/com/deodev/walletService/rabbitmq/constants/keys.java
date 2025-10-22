@@ -3,25 +3,27 @@ package com.deodev.walletService.rabbitmq.constants;
 public class keys {
 
     // WALLET EVENTS
-    public static final String WALLET_EXCHANGE = "wallet.events";
-    public static final String WALLET_CREATED = "wallet.lifecycle.wallet-created";
-    public static final String TRANSFER_COMPLETED = "wallet.lifecycle.transfer-completed";
-    public static final String TRANSFER_FAILED = "wallet.lifecycle.transfer-failed";
+    public static final String WALLET_EXCHANGE = "wallet.exchange";
+    public static final String WALLET_CREATED = "wallet.created";
+
+    // DLX
+    public static final String DLX = "dlx.exchange";
 
     // TRANSACTION EVENTS
-    public static final String WALLET_TRANSACTION_QUEUE = "wallet.transaction-events";
-    public static final String TRANSACTION_EXCHANGE = "transaction.events";
+    public static final String TRANSACTION_EXCHANGE = "transaction.exchange";
+    public static final String TRANSACTION_QUEUE = "transaction.queue";
+    public static final String TRANSACTION_DLQ = "transaction.dlq";
     // TRANSACTION ROUTING KEYS
-    public static final String P2P_TRANSACTION_WILDCARD = "transaction.p2p.lifecycle.*";
-    public static final String P2P_TRANSFER_REQUESTED = "transaction.p2p.lifecycle.transfer-requested";
-
+    public static final String TRANSACTION_WILDCARD = "transaction.*";
+    public static final String ACCOUNT_FUNDED = "transaction.account.funded";
 
     // USER EVENTS
-    public static final String WALLET_USER_QUEUE = "wallet.user-events";
-    public static final String USER_EXCHANGE = "user.events";
+    public static final String USER_EXCHANGE = "user.exchange";
+    public static final String USER_QUEUE = "user.queue";
+    public static final String USER_DLQ = "user.dlq";
     // USER ROUTING KEYS
-    public static final String USER_WILDCARD_KEY = "user.lifecycle.*";
-    public static final String USER_CREATED = "user.lifecycle.user-created";
+    public static final String USER_WILDCARD = "user.*";
+    public static final String USER_CREATED = "user.created";
 
     private keys() {
     }

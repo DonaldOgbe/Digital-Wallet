@@ -9,7 +9,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import static com.deodev.userService.rabbitmq.constants.keys.*;
+
 
 import java.util.UUID;
 
@@ -18,6 +18,9 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class UserEventsPublisherTest {
+
+    private static final String USER_EXCHANGE = "user.exchange";
+    private static final String USER_CREATED = "user.created";
 
     @Mock
     private RabbitTemplate rabbitTemplate;

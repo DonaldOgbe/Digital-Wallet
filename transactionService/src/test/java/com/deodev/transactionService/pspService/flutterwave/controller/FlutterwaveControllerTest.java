@@ -1,11 +1,9 @@
 package com.deodev.transactionService.pspService.flutterwave.controller;
 
-import com.deodev.transactionService.dto.ApiResponse;
 import com.deodev.transactionService.enums.*;
 import com.deodev.transactionService.pspService.flutterwave.client.FlutterwaveClient;
 import com.deodev.transactionService.pspService.flutterwave.dto.request.InitiateChargeCardRequest;
 import com.deodev.transactionService.pspService.flutterwave.dto.request.VerifyChargeCardRequest;
-import com.deodev.transactionService.pspService.flutterwave.dto.response.VerifyChargeCardResponse;
 import com.deodev.transactionService.pspService.walletService.service.WalletService;
 import com.deodev.transactionService.redis.RedisCacheService;
 import com.deodev.transactionService.transactionService.model.CardFundingTransaction;
@@ -77,9 +75,6 @@ class FlutterwaveControllerTest {
 
         accountNumber = "0123456789";
         userId = UUID.randomUUID();
-
-
-
     }
 
     @Test
@@ -137,7 +132,6 @@ class FlutterwaveControllerTest {
     @Test
     void shouldReturnSuccessResponse_WhenVerifyCardFundingIsSuccessful() throws Exception {
         // given
-
         Transaction transaction = Transaction.builder()
                 .transactionType(TransactionType.CARD_FUND)
                 .userId(userId)
@@ -158,7 +152,7 @@ class FlutterwaveControllerTest {
                 .paymentGateway(PaymentGateway.FLUTTERWAVE)
                 .build();
 
-        CardFundingTransaction saved = transactionService.saveCardFundingTransaction(cardFundingTransaction);
+        transactionService.saveCardFundingTransaction(cardFundingTransaction);
 
         String idempotencyKey = UUID.randomUUID().toString();
 

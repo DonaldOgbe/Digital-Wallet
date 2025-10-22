@@ -16,16 +16,25 @@ public class UserEventsListener {
 
     private final WalletService walletService;
 
-    @RabbitListener(queues = WALLET_USER_QUEUE)
-    public void handleUserLifecycleEvents(
+    @RabbitListener(queues = USER_QUEUE)
+    public void handleUserEvents(
             @Payload UserRegisteredEvent event,
             @Header("amqp_receivedRoutingKey") String routingKey
     ) {
         log.info("User Registration Event: {}, userId: {}", routingKey, event.userid());
 
-        switch (routingKey) {
-            case USER_CREATED -> walletService.createWallet(String.valueOf(event.userid()));
-            default -> log.warn("Unknown user routing key: {}", routingKey);
+        try {
+            if (routingKey.equals(USER_CREATED)) {
+                walletService.createWallet(String.valueOf(event.userid()));
+                log.info("Wallet created for user [{}]", event.userid());
+            } else {
+                log.warn("Unknown user routing key: {}", routingKey);
+            }
+
+        } catch (Exception ex) {
+            log.error("Error processing user event [{}] for user [{}]: {}",
+                    routingKey, event.userid(), ex.getMessage(), ex);
+            throw ex;
         }
     }
 }

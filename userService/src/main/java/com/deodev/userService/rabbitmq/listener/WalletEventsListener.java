@@ -17,25 +17,24 @@ public class WalletEventsListener {
 
     private final UserService userService;
 
-    @RabbitListener(queues = USER_WALLET_QUEUE)
+    @RabbitListener(queues = WALLET_QUEUE)
     public void handleWalletLifecycleEvents(
             @Payload WalletCreatedEvent event,
             @Header("amqp_receivedRoutingKey") String routingKey
     ) {
-        log.info("Wallet Lifecycle Event: {}, userId: {}",
-                routingKey, event.userId());
+        log.info("Received wallet event [{}] for user [{}]", routingKey, event.userId());
 
-        switch (routingKey) {
-            case WALLET_CREATED -> {
-                try {
-                    userService.markUserVerified(event.userId());
-                    log.info("User [{}] marked as verified after wallet creation", event.userId());
-                } catch (Exception ex) {
-                    log.error("WALLET_CREATED event error, failed to marked user as verified, Error: {}", ex.getMessage());
-                }
-
+        try {
+            if (WALLET_CREATED.equals(routingKey)) {
+                userService.markUserVerified(event.userId());
+                log.info("User [{}] marked as verified after wallet creation", event.userId());
+            } else {
+                log.warn("Unhandled wallet routing key: {}", routingKey);
             }
-            default -> log.warn("Unknown wallet routing key: {}", routingKey);
+        } catch (Exception ex) {
+            log.error("Error processing wallet event [{}] for user [{}]: {}",
+                    routingKey, event.userId(), ex.getMessage(), ex);
+            throw ex;
         }
     }
 }

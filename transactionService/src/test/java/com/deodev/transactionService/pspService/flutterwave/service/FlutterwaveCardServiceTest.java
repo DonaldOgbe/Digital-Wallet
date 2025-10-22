@@ -51,6 +51,7 @@ class FlutterwaveCardServiceTest {
         transaction.setCurrency(Currency.NGN);
 
         cardFundingTransaction = new CardFundingTransaction();
+        cardFundingTransaction.setId(UUID.randomUUID());
     }
 
     @Test
@@ -174,7 +175,7 @@ class FlutterwaveCardServiceTest {
         assertThat(result.isSuccess()).isTrue();
         VerifyChargeCardResponse data = (VerifyChargeCardResponse) result.getData();
         assertThat(data.status()).isEqualTo("successful");
-        assertThat(data.txn_ref()).isEqualTo(transaction.getId().toString());
+        assertThat(data.txn_ref()).isEqualTo(cardFundingTransaction.getId().toString());
         assertThat(data.currency()).isEqualTo(Currency.NGN);
 
         verify(transactionService, never())
@@ -198,7 +199,7 @@ class FlutterwaveCardServiceTest {
             assertThat(result.isSuccess()).isTrue();
             VerifyChargeCardResponse data = (VerifyChargeCardResponse) result.getData();
             assertThat(data.status()).isEqualTo("pending");
-            assertThat(data.txn_ref()).isEqualTo(transaction.getId().toString());
+            assertThat(data.txn_ref()).isEqualTo(cardFundingTransaction.getId().toString());
 
             verify(transactionService, never())
                     .setFailedCardFundingTransaction(any(), any(), any());

@@ -1,5 +1,6 @@
 package com.deodev.userService.service;
 
+import com.deodev.userService.config.CustomUserDetails;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -24,7 +25,7 @@ class AuthServiceUnitTest {
     @Test
     void authenticateUser_ShouldReturnUserDetails_WhenAuthenticationSucceeds() {
         // given
-        UserDetails mockUserDetails = mock(UserDetails.class);
+        CustomUserDetails mockUserDetails = mock(CustomUserDetails.class);
         Authentication mockAuthentication = mock(Authentication.class);
 
         when(authenticationManager.authenticate(any())).thenReturn(mockAuthentication);
