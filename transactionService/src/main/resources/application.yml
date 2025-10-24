@@ -31,11 +31,11 @@ server:
 
 wallet:
   service:
-    url: ${WALLET_SERVICE_PORT:localhost:8092}
+    url: ${WALLET_SERVICE_PORT:http://localhost:8092}
 
 user:
   service:
-    url: ${USER_SERVICE_PORT:8091}
+    url: ${USER_SERVICE_PORT:http://localhost:8091}
 
 psp:
   flutterwave:

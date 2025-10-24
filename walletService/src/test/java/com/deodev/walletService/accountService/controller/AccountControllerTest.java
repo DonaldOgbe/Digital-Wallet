@@ -113,7 +113,7 @@ class AccountControllerTest {
         accountRepository.save(account);
 
         GetUserDetailsResponse userDetails = GetUserDetailsResponse.builder()
-                .firstName("John").lastName("Doe").email("johndoe@email.com").build();
+                .firstname("John").lastname("Doe").email("johndoe@email.com").build();
 
         ResponseEntity<ApiResponse<?>> apiResponse = ResponseEntity.status(HttpStatus.OK.value())
                 .body(ApiResponse.success(200, userDetails));
@@ -175,11 +175,10 @@ class AccountControllerTest {
         UUID transactionId = UUID.randomUUID();
         P2PTransferRequest request = P2PTransferRequest.builder()
                         .senderAccountNumber(sender.getAccountNumber()).receiverAccountNumber(receiver.getAccountNumber())
-                        .amount(400L).pin(pin).transactionId(transactionId).build();
+                        .amount(400L).pin(pin).transactionId(transactionId).userId(userId).build();
 
         // when & then
-        mockMvc.perform(post("/api/v1/wallets/accounts/funds/p2p/transfer")
-                        .header("X-User-Id", userId)
+        mockMvc.perform(post("/api/v1/wallets/accounts/p2p/transfer")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())

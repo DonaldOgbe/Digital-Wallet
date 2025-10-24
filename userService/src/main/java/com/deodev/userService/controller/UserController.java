@@ -22,11 +22,10 @@ public class UserController {
 
     @GetMapping("/{userId}")
     public ResponseEntity<ApiResponse<?>> getUser(@PathVariable UUID userId) {
-
-        GetUserDetailsResponse response = userService.findUserDetails(userId);
+        ApiResponse<?> response = userService.findUserDetails(userId);
         return ResponseEntity
-                .status(HttpStatus.OK)
-                .body(ApiResponse.success(HttpStatus.OK.value(), response));
+                .status(response.getStatusCode())
+                .body(response);
     }
 
     @PatchMapping("/me/password")

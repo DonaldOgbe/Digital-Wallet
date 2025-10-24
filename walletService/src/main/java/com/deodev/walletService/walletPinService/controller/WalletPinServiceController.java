@@ -22,10 +22,8 @@ public class WalletPinServiceController {
     public ResponseEntity<?> setNewPin(@Valid
                                        @RequestHeader("X-User-Id") String userId,
                                        @RequestBody SetPinRequest requestBody) {
-        CreateWalletPinResponse response = walletPinService.createPin(requestBody, userId);
-        return ResponseEntity.status(HttpStatus.CREATED).body(
-                ApiResponse.success(HttpStatus.CREATED.value(), response)
-        );
+        ApiResponse<?> response = walletPinService.createPin(requestBody, userId);
+        return ResponseEntity.status(response.getStatusCode()).body(response);
     }
 
     @PatchMapping

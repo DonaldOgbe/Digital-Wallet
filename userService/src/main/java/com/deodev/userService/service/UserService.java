@@ -3,7 +3,9 @@ package com.deodev.userService.service;
 import com.deodev.userService.dto.request.UpdatePasswordRequest;
 import com.deodev.userService.dto.request.UserRegistrationRequest;
 import com.deodev.userService.dto.response.ApiResponse;
+import com.deodev.userService.dto.response.ErrorResponse;
 import com.deodev.userService.dto.response.GetUserDetailsResponse;
+import com.deodev.userService.enums.ErrorCode;
 import com.deodev.userService.exception.InvalidPasswordException;
 import com.deodev.userService.exception.ResourceNotFoundException;
 import com.deodev.userService.exception.UserAlreadyExistsException;
@@ -12,6 +14,7 @@ import com.deodev.userService.repository.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -20,6 +23,7 @@ import java.time.Instant;
 import java.util.Set;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class UserService {
@@ -30,15 +34,22 @@ public class UserService {
     private final RoleService roleService;
     private final RedisCacheService redisCacheService;
 
-    public GetUserDetailsResponse findUserDetails(UUID userId) {
+    public ApiResponse<?> findUserDetails(UUID userId) {
 
-        User user = userRepository.findById(userId).orElseThrow();
+        try {
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
 
-        return GetUserDetailsResponse.builder()
-                .firstname(user.getFirstname())
-                .lastname(user.getLastname())
-                .email(user.getEmail())
-                .build();
+            return ApiResponse.success(HttpStatus.OK.value(), GetUserDetailsResponse.builder()
+                    .firstname(user.getFirstname())
+                    .lastname(user.getLastname())
+                    .email(user.getEmail())
+                    .build());
+        } catch (ResourceNotFoundException ex) {
+            log.error("User not found with id: {}", userId, ex);
+            return ApiResponse.error(HttpStatus.BAD_REQUEST.value(), ErrorCode.NOT_FOUND,
+                    ErrorResponse.builder().message("User not found"));
+        }
     }
 
     public User createNewUser(UserRegistrationRequest request) {

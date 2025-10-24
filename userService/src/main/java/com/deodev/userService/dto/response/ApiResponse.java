@@ -30,4 +30,14 @@ public class ApiResponse<T> {
                 .data(data)
                 .build();
     }
+
+    public static <T> ApiResponse<T> error(int statusCode, ErrorCode errorCode, T data) {
+        return ApiResponse.<T>builder()
+                .success(false)
+                .statusCode(statusCode)
+                .timestamp(LocalDateTime.now())
+                .errorCode(errorCode)
+                .data(data)
+                .build();
+    }
 }

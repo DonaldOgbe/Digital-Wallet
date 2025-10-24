@@ -14,7 +14,7 @@ public class keys {
     public static final String WALLET_DLQ = "wallet.dlq";
 
     // WALLET ROUTING KEYS
-    public static final String WALLET_WILDCARD = "wallet.*";
+    public static final String WALLET_WILDCARD = "wallet.#";
     public static final String WALLET_CREATED = "wallet.created";
 
 }

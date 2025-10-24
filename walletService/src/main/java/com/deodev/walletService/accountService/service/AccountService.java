@@ -91,11 +91,11 @@ public class AccountService {
     }
 
     @Transactional
-    public ApiResponse<?> P2PTransfer(P2PTransferRequest request, String userId) {
+    public ApiResponse<?> P2PTransfer(P2PTransferRequest request) {
         try {
-            walletPinService.validatePin(userId, request.pin());
+            walletPinService.validatePin(request.userId(), request.pin());
 
-            FundReservation reservation = reserveFunds(UUID.fromString(userId), request);
+            FundReservation reservation = reserveFunds(request.userId(), request);
 
             debitSender(request.senderAccountNumber(), request.amount());
             creditReceiver(request.receiverAccountNumber(), request.amount());

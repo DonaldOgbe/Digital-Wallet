@@ -1,5 +1,8 @@
 package com.deodev.walletService.walletPinService.service;
 
+import com.deodev.walletService.dto.ApiResponse;
+import com.deodev.walletService.dto.ErrorResponse;
+import com.deodev.walletService.enums.ErrorCode;
 import com.deodev.walletService.exception.InvalidPinException;
 import com.deodev.walletService.exception.ResourceNotFoundException;
 import com.deodev.walletService.walletPinService.dto.request.SetPinRequest;
@@ -12,6 +15,7 @@ import com.deodev.walletService.walletService.model.Wallet;
 import com.deodev.walletService.walletService.service.WalletService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -29,26 +33,33 @@ public class WalletPinService {
 
     private final WalletService walletService;
 
-    public CreateWalletPinResponse createPin(SetPinRequest request, String userId) {
-        pinsMatch(request.newPin(), request.confirmNewPin());
+    public ApiResponse<?> createPin(SetPinRequest request, String userId) {
+        try {
+            pinsMatch(request.newPin(), request.confirmNewPin());
 
-        Wallet wallet = walletService.findByUserId(UUID.fromString(userId));
+            Wallet wallet = walletService.findByUserId(UUID.fromString(userId));
 
-        String hashedPin = passwordEncoder.encode(request.newPin());
+            String hashedPin = passwordEncoder.encode(request.newPin());
 
-        WalletPin walletPin = WalletPin.builder()
-                .walletId(wallet.getId())
-                .userId(UUID.fromString(userId))
-                .pin(hashedPin)
-                .build();
+            WalletPin walletPin = WalletPin.builder()
+                    .walletId(wallet.getId())
+                    .userId(UUID.fromString(userId))
+                    .pin(hashedPin)
+                    .build();
 
-        WalletPin savedPin = walletPinRepository.save(walletPin);
+            WalletPin savedPin = walletPinRepository.save(walletPin);
 
-        return CreateWalletPinResponse.builder()
-                .walletId(savedPin.getWalletId())
-                .userId(savedPin.getUserId())
-                .walletPinId(savedPin.getId())
-                .build();
+            return ApiResponse.success(HttpStatus.CREATED.value(), CreateWalletPinResponse.builder()
+                    .walletId(savedPin.getWalletId())
+                    .userId(savedPin.getUserId())
+                    .walletPinId(savedPin.getId())
+                    .build());
+        } catch (Exception ex) {
+            log.error("Error while creating wallet pin for user: {}", userId, ex);
+            return ApiResponse.error(HttpStatus.BAD_REQUEST.value(), ErrorCode.SYSTEM_ERROR,
+                    ErrorResponse.builder().message("Error while creating wallet pin").build());
+        }
+
     }
 
     public CreateWalletPinResponse updatePin(UpdatePinRequest request, String userId) {
@@ -69,8 +80,8 @@ public class WalletPinService {
                 .build();
     }
 
-    public void validatePin(String userId, String pin) {
-        verifyPin(UUID.fromString(userId), pin, null);
+    public void validatePin(UUID userId, String pin) {
+        verifyPin(userId, pin, null);
 
         ValidateWalletPinResponse.builder()
                 .isValid(true)

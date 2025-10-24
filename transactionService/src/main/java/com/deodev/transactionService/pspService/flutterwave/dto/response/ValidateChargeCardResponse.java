@@ -6,6 +6,6 @@ import lombok.Builder;
 public record ValidateChargeCardResponse(
         String status,
         String message,
-        String id
+        Long id
 ) {
 }

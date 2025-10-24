@@ -40,8 +40,8 @@ class UserServiceClientTest {
         ApiResponse<GetUserDetailsResponse> expectedResponse = ApiResponse.success(
                 HttpStatus.OK.value(),
                 GetUserDetailsResponse.builder()
-                        .firstName("John")
-                        .lastName("Doe")
+                        .firstname("John")
+                        .lastname("Doe")
                         .email("johndoe@email.com")
                         .build());
 
@@ -59,8 +59,8 @@ class UserServiceClientTest {
         // then
         assertThat(actualResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(actualResponse.getBody().isSuccess()).isTrue();
-        assertThat(data.firstName()).isEqualTo(expectedResponse.getData().firstName());
-        assertThat(data.lastName()).isEqualTo(expectedResponse.getData().lastName());
+        assertThat(data.firstname()).isEqualTo(expectedResponse.getData().firstname());
+        assertThat(data.lastname()).isEqualTo(expectedResponse.getData().lastname());
         assertThat(data.email()).isEqualTo(expectedResponse.getData().email());
     }
 }

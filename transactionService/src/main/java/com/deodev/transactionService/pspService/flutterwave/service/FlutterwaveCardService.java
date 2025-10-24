@@ -103,7 +103,8 @@ public class FlutterwaveCardService {
 
         Transaction transaction = transactionService.getTransaction(cardFundingTransaction.getTransactionId());
 
-        OtpValidateRequest otpValidateRequest = mapper.convertValue(request, OtpValidateRequest.class);
+        OtpValidateRequest otpValidateRequest = OtpValidateRequest.builder()
+                .otp(request.otp()).flw_ref(request.flw_ref()).build();
 
         Map<String, Object> response = new HashMap<>();
         try {
@@ -122,7 +123,7 @@ public class FlutterwaveCardService {
         return ApiResponse.success(HttpStatus.OK.value(), ValidateChargeCardResponse.builder()
                 .status((String) response.get("status"))
                 .message((String) response.get("message"))
-                .id((String) response.get("id"))
+                .id(Long.valueOf((Integer) response.get("id")))
                 .build());
     }
 

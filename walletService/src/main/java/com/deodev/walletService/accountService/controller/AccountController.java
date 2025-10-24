@@ -53,10 +53,9 @@ public class AccountController {
         );
     }
 
-    @PostMapping("/funds/p2p/transfer")
-    public ResponseEntity<ApiResponse<?>> p2pTransfer(@Valid @RequestBody P2PTransferRequest request,
-                                          @RequestHeader("X-User-Id") String userId) {
-        ApiResponse<?> response = accountService.P2PTransfer(request, userId);
+    @PostMapping("/p2p/transfer")
+    public ResponseEntity<ApiResponse<?>> p2pTransfer(@Valid @RequestBody P2PTransferRequest request) {
+        ApiResponse<?> response = accountService.P2PTransfer(request);
 
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }

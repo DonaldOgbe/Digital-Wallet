@@ -21,10 +21,10 @@ public class WalletPin {
     @Column(nullable = false, updatable = false)
     private UUID id;
 
-    @Column(nullable = false, updatable = false)
+    @Column(nullable = false, updatable = false, unique = true)
     private UUID walletId;
 
-    @Column(nullable = false, updatable = false)
+    @Column(nullable = false, updatable = false, unique = true)
     private UUID userId;
 
     @Column(nullable = false)

@@ -31,13 +31,13 @@ public class ApiResponse<T> {
                 .build();
     }
 
-    public static <T> ApiResponse<T> error(int statusCode, ErrorCode errorCode) {
+    public static <T> ApiResponse<T> error(int statusCode, ErrorCode errorCode, T data) {
         return ApiResponse.<T>builder()
                 .success(false)
                 .statusCode(statusCode)
                 .timestamp(LocalDateTime.now())
                 .errorCode(errorCode)
-                .data(null)
+                .data(data)
                 .build();
     }
 }
