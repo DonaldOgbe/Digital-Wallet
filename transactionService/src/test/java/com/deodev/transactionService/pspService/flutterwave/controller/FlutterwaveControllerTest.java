@@ -2,6 +2,7 @@ package com.deodev.transactionService.pspService.flutterwave.controller;
 
 import com.deodev.transactionService.enums.*;
 import com.deodev.transactionService.pspService.flutterwave.client.FlutterwaveClient;
+import com.deodev.transactionService.pspService.flutterwave.dto.FlutterwaveResponse;
 import com.deodev.transactionService.pspService.flutterwave.dto.request.InitiateChargeCardRequest;
 import com.deodev.transactionService.pspService.flutterwave.dto.request.VerifyChargeCardRequest;
 import com.deodev.transactionService.pspService.walletService.service.WalletService;
@@ -79,6 +80,15 @@ class FlutterwaveControllerTest {
 
     @Test
     void shouldReturnCardType_WhenFlutterwaveClientReturnsSuccess() throws Exception {
+        Map<String, Object> data = new HashMap<>();
+        data.put("card_type", "MASTERCARD");
+        data.put("issuer", "GTBank");
+
+        FlutterwaveResponse flutterwaveResponse = FlutterwaveResponse.builder()
+                .status("success")
+                .message("completed")
+                .data(data).build();
+
         // given
         when(flutterwaveClient.resolveCard(anyString())).thenReturn(flutterwaveResponse);
 
@@ -105,14 +115,16 @@ class FlutterwaveControllerTest {
                 .cardLast4("5569")
                 .build();
 
-        Map<String, Object> flutterwaveResponse = Map.of(
-                "status", "success",
-                "message", "Charge initiated",
-                "meta", Map.of(
+        FlutterwaveResponse flutterwaveResponse = FlutterwaveResponse.builder()
+                .status("success")
+                .message("Charge authorization data required")
+                .data(null)
+                .meta(Map.of(
                         "authorization", Map.of(
                                 "mode", "pin",
                                 "fields", List.of("pin")
-                        )));
+                        )))
+                .build();
 
         when(redisCacheService.getCacheResponse(any())).thenReturn(null);
         when(walletService.verifyAccountNumber(anyString(), any())).thenReturn(true);
@@ -126,7 +138,59 @@ class FlutterwaveControllerTest {
                         .header("Idempotency-Key", UUID.randomUUID().toString())
                         .content(mapper.writeValueAsString(request)))
                 .andExpect(status().isOk());
+    }
 
+    @Test
+    void shouldReturnRedirectUrlResponse_WhenFlutterwaveClientReturnsSuccess_And3DSAuthMode() throws Exception {
+        // given
+        UUID txn_ref = UUID.randomUUID();
+
+        InitiateChargeCardRequest request = InitiateChargeCardRequest.builder()
+                .currency(Currency.USD)
+                .amount(1000L)
+                .txn_ref(txn_ref.toString())
+                .client("encrypted")
+                .accountNumber("0123456789")
+                .cardType(CardType.MASTERCARD)
+                .cardLast4("5569")
+                .build();
+
+        FlutterwaveResponse flutterwaveResponse = FlutterwaveResponse.builder()
+                .status("success")
+                .message("Charge initiated")
+                .data(Map.of(
+                        "id", 1254647,
+                        "tx_ref", txn_ref.toString(),
+                        "flw_ref", "IUSE9942171639769110812191",
+                        "amount", 1000,
+                        "processor_response", "Pending redirect to issuer's 3DS authentication page",
+                        "currency", "NGN",
+                        "status", "pending"
+                ))
+                .meta(Map.of(
+                        "authorization", Map.of(
+                                "mode", "redirect",
+                                "redirect", "https://auth.coreflutterwaveprod.com/transaction?reference=IUSE9942171639769110812191"
+                        )))
+                .build();
+
+        when(redisCacheService.getCacheResponse(any())).thenReturn(null);
+        when(walletService.verifyAccountNumber(anyString(), any())).thenReturn(true);
+
+        when(flutterwaveClient.chargeCard(any())).thenReturn(flutterwaveResponse);
+
+        // when
+        mockMvc.perform(post("/api/v1/psp/flutterwave/card/initiate-card-funding")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("X-User-Id", UUID.randomUUID().toString())
+                        .header("Idempotency-Key", UUID.randomUUID().toString())
+                        .content(mapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.mode").value("redirect"))
+                .andExpect(jsonPath("$.data.id").value(1254647))
+                .andExpect(jsonPath("$.data.txn_ref").value(txn_ref.toString()))
+                .andExpect(jsonPath("$.data.flw_ref").value("IUSE9942171639769110812191"))
+                .andExpect(jsonPath("$.data.redirect").value("https://auth.coreflutterwaveprod.com/transaction?reference=IUSE9942171639769110812191"));
     }
 
     @Test
@@ -144,7 +208,7 @@ class FlutterwaveControllerTest {
 
         Transaction savedTransaction = transactionService.saveTransaction(transaction);
 
-        CardFundingTransaction cardFundingTransaction =  CardFundingTransaction.builder()
+        CardFundingTransaction cardFundingTransaction = CardFundingTransaction.builder()
                 .id(UUID.randomUUID())
                 .transactionId(savedTransaction.getId())
                 .accountNumber(accountNumber)
@@ -161,16 +225,17 @@ class FlutterwaveControllerTest {
                 .txn_ref(cardFundingTransaction.getId().toString())
                 .build();
 
-        Map<String, Object> flutterwaveResponse = Map.of(
-                "status", "success",
-                "message", "",
-                "data", Map.of(
+        FlutterwaveResponse flutterwaveResponse = FlutterwaveResponse.builder()
+                .status("success")
+                .message("Transaction fetched successfully")
+                .data(Map.of(
                         "id", 288192886,
                         "txn_ref", cardFundingTransaction.getId().toString(),
                         "flw_ref", "FLW-455DJ",
                         "processor_response", "Approved Successfully",
                         "status", "successful"
-                ));
+                ))
+                .build();
 
         when(redisCacheService.getCacheResponse("flw_verify_card_funding:" + idempotencyKey))
                 .thenReturn(null);

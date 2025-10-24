@@ -1,6 +1,7 @@
 package com.deodev.transactionService.pspService.flutterwave.client;
 
 import com.deodev.transactionService.exception.ExternalServiceException;
+import com.deodev.transactionService.pspService.flutterwave.dto.FlutterwaveResponse;
 import com.deodev.transactionService.pspService.flutterwave.dto.request.EncryptedChargeRequest;
 import com.deodev.transactionService.pspService.flutterwave.dto.request.OtpValidateRequest;
 import lombok.extern.slf4j.Slf4j;
@@ -8,8 +9,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
+import reactor.core.publisher.Mono;
 
-import java.util.Map;
 
 @Service
 @Slf4j
@@ -26,99 +27,121 @@ public class FlutterwaveClient {
         this.secretKey = secretKey;
     }
 
-    public Map<String, Object> resolveCard(String bin) {
+    public FlutterwaveResponse resolveCard(String bin) {
         try {
-            Map<String, Object> response = webClient.get()
+            return webClient.get()
                     .uri("/v3/card-bins/{bin}", bin)
                     .header("Authorization", "Bearer " + secretKey)
                     .header("Content-Type", "application/json")
                     .header("Accept", "application/json")
-                    .retrieve()
-                    .bodyToMono(Map.class)
+                    .exchangeToMono(clientResponse -> {
+                        if (clientResponse.statusCode().is2xxSuccessful()) {
+                            log.info("Successfully resolved card BIN [{}]", bin);
+                            return clientResponse.bodyToMono(FlutterwaveResponse.class);
+                        } else if (clientResponse.statusCode().is4xxClientError()) {
+                            log.warn("Flutterwave card bin resolution failed for BIN [{}]: Client error {}", bin, clientResponse.statusCode());
+                            return clientResponse.bodyToMono(FlutterwaveResponse.class);
+                        } else {
+                            log.error("Flutterwave card bin resolution failed for BIN [{}]: Server error {}", bin, clientResponse.statusCode());
+                            return clientResponse.createException().flatMap(Mono::error);
+                        }
+                    })
                     .block();
-
-            validateResponse(response, "Empty response body while resolving card BIN "+ bin);
-            return response;
-        } catch (WebClientResponseException e) {
-            log.error("Flutterwave API error while resolving card BIN {}: {}", bin, e.getResponseBodyAsString(), e);
-            throw new ExternalServiceException("Flutterwave API error while resolving card BIN", e);
-        } catch (Exception e) {
-            log.error("Unexpected error resolving card BIN {}: {}", bin, e.getMessage(), e);
-            throw e;
+        } catch (WebClientResponseException ex) {
+            log.error("WebClientResponseException for request [{}]: response {}", ex.getRequest(), ex.getResponseBodyAsString(), ex);
+            throw new ExternalServiceException("Flutterwave card bin resolution failed", ex);
+        } catch (Exception ex) {
+            log.error("Unexpected error resolving card BIN  [{}]: {}", bin, ex.getMessage(), ex);
+            throw ex;
         }
     }
 
-    public Map<String, Object> chargeCard(EncryptedChargeRequest request) {
+    public FlutterwaveResponse chargeCard(EncryptedChargeRequest request) {
         try {
-            Map<String, Object> response =  webClient.post()
+            return webClient.post()
                     .uri("/v3/charges?type=card")
                     .header("Authorization", "Bearer " + secretKey)
                     .header("Content-Type", "application/json")
                     .header("Accept", "application/json")
                     .bodyValue(request)
-                    .retrieve()
-                    .bodyToMono(Map.class)
+                    .exchangeToMono(clientResponse -> {
+                        if (clientResponse.statusCode().is2xxSuccessful()) {
+                            log.info("Successfully charged card");
+                            return clientResponse.bodyToMono(FlutterwaveResponse.class);
+                        } else if (clientResponse.statusCode().is4xxClientError()) {
+                            log.warn("Flutterwave charge card failed: Client error {}", clientResponse.statusCode());
+                            return clientResponse.bodyToMono(FlutterwaveResponse.class);
+                        } else {
+                            log.error("Flutterwave charge card failed: Server error {}", clientResponse.statusCode());
+                            return clientResponse.createException().flatMap(Mono::error);
+                        }
+                    })
                     .block();
-            validateResponse(response, "Empty response body from charge card");
-            return response;
-        } catch (WebClientResponseException e) {
-            log.error("Flutterwave API error while calling charge card  {}", e.getResponseBodyAsString(), e);
-            throw new ExternalServiceException("Flutterwave API error while calling charge card", e);
-        } catch (Exception e) {
-            log.error("Unexpected error while charging card: {}", e.getMessage(), e);
-            throw e;
+        } catch (WebClientResponseException ex) {
+            log.error("WebClientResponseException for request [{}]: response {}", ex.getRequest(), ex.getResponseBodyAsString(), ex);
+            throw new ExternalServiceException("Flutterwave charge card failed", ex);
+        } catch (Exception ex) {
+            log.error("Unexpected error charging card: {}", ex.getMessage(), ex);
+            throw ex;
         }
     }
 
-    public Map<String, Object> validateCharge(OtpValidateRequest request) {
+    public FlutterwaveResponse validateCharge(OtpValidateRequest request) {
         try {
-            Map<String, Object> response = webClient.post()
+            return webClient.post()
                     .uri("/v3/validate-charge")
                     .header("Authorization", "Bearer " + secretKey)
                     .header("Content-Type", "application/json")
                     .bodyValue(request)
-                    .retrieve()
-                    .bodyToMono(Map.class)
+                    .exchangeToMono(clientResponse -> {
+                        if (clientResponse.statusCode().is2xxSuccessful()) {
+                            log.info("Successfully validated card charge");
+                            return clientResponse.bodyToMono(FlutterwaveResponse.class);
+                        } else if (clientResponse.statusCode().is4xxClientError()) {
+                            log.warn("Flutterwave validate card charge failed: Client error {}", clientResponse.statusCode());
+                            return clientResponse.bodyToMono(FlutterwaveResponse.class);
+                        } else {
+                            log.error("Flutterwave validate card charge failed: Server error {}", clientResponse.statusCode());
+                            return clientResponse.createException().flatMap(Mono::error);
+                        }
+                    })
                     .block();
-
-            validateResponse(response, "Empty response body from validate charge card");
-            return response;
-        } catch (WebClientResponseException e) {
-            log.error("Flutterwave API error while validating card charge for flw_ref: {}, {}", request.flw_ref(), e.getResponseBodyAsString(), e);
-            throw new ExternalServiceException("Flutterwave API error validating card charge", e);
-        } catch (Exception e) {
-            log.error("Error validating card charge Flutterwave charge for flw_ref: {}, {}", request.flw_ref(), e.getMessage(), e);
-            throw e;
+        } catch (WebClientResponseException ex) {
+            log.error("WebClientResponseException for request [{}]: response {}", ex.getRequest(), ex.getResponseBodyAsString(), ex);
+            throw new ExternalServiceException("Flutterwave validate card charge failed", ex);
+        } catch (Exception ex) {
+            log.error("Unexpected error validating card charge for flw_ref: [{}], {}", request.flw_ref(), ex.getMessage(), ex);
+            throw ex;
         }
-    };
+    }
 
-    public Map<String, Object> verifyCharge(Long transactionId) {
+    public FlutterwaveResponse verifyCharge(Long transactionId) {
         try {
-            Map<String, Object> response = webClient.get()
+            return webClient.get()
                     .uri("/v3/transactions/{transactionId}/verify", transactionId)
                     .header("Authorization", "Bearer " + secretKey)
                     .header("Content-Type", "application/json")
-                    .retrieve()
-                    .bodyToMono(Map.class)
+                    .exchangeToMono(clientResponse -> {
+                        if (clientResponse.statusCode().is2xxSuccessful()) {
+                            log.info("Successfully verified card charge");
+                            return clientResponse.bodyToMono(FlutterwaveResponse.class);
+                        } else if (clientResponse.statusCode().is4xxClientError()) {
+                            log.warn("Flutterwave verify card charge failed: Client error {}", clientResponse.statusCode());
+                            return clientResponse.bodyToMono(FlutterwaveResponse.class);
+                        } else {
+                            log.error("Flutterwave verify card charge failed: Server error {}", clientResponse.statusCode());
+                            return clientResponse.createException().flatMap(Mono::error);
+                        }
+                    })
                     .block();
-
-            validateResponse(response, "Empty response body from verify charge");
-            return response;
-        } catch (WebClientResponseException e) {
-            log.error("Flutterwave API error while verifying card charge for id: {}, {}", transactionId, e.getResponseBodyAsString(), e);
-            throw new ExternalServiceException("Flutterwave API error while verifying card charge", e);
-        } catch (Exception e) {
-            log.error("Unexpected Error while verifying card charge for id: {}, {}", transactionId, e.getMessage(), e);
-            throw e;
+        } catch (WebClientResponseException ex) {
+            log.error("WebClientResponseException for request [{}]: response {}", ex.getRequest(), ex.getResponseBodyAsString(), ex);
+            throw new ExternalServiceException("Flutterwave verify card charge failed", ex);
+        } catch (Exception ex) {
+            log.error("Unexpected error while verifying card charge for id: [{}], {}", transactionId, ex.getMessage(), ex);
+            throw ex;
         }
 
-    }
-
-    void validateResponse(Map<String, Object> response, String message) {
-        if (response == null) {
-            log.warn(message);
-            throw new ExternalServiceException("Empty response from Flutterwave");
-        }
     }
 
 }

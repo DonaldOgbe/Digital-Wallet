@@ -1,5 +1,6 @@
 package com.deodev.transactionService.pspService.flutterwave.client;
 
+import com.deodev.transactionService.pspService.flutterwave.dto.FlutterwaveResponse;
 import com.deodev.transactionService.pspService.flutterwave.dto.request.EncryptedChargeRequest;
 import com.deodev.transactionService.pspService.flutterwave.dto.request.OtpValidateRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -35,25 +36,27 @@ class FlutterwaveClientTest {
     private String secretKey;
     private EncryptedChargeRequest encryptedChargeRequest;
     private String chargeCardJsonResponse;
-    private String resolveCardJsonResponse;
+    private String pinChargeCardJsonResponse;
 
     @BeforeEach
     void setup() {
         bin = "564000";
         secretKey = "FLWSECK_TEST-12345";
 
-        resolveCardJsonResponse = """
+        encryptedChargeRequest = new EncryptedChargeRequest("encrypted");
+
+        pinChargeCardJsonResponse = """
                 {
-                  "status": "success",
-                  "message": "BIN resolved successfully",
-                  "data": {
-                    "card_type": "MASTERCARD",
-                    "issuer": "GTBank"
+                "status": "success",
+                "message": "Charge authorization data required",
+                "meta": {
+                    "authorization": {
+                      "mode": "pin",
+                      "fields": ["pin"]
+                    }
                   }
                 }
                 """;
-
-        encryptedChargeRequest = new EncryptedChargeRequest("encrypted");
 
         chargeCardJsonResponse = """
                 {
@@ -94,6 +97,17 @@ class FlutterwaveClientTest {
     @Test
     void shouldResolveCardSuccessfully() throws Exception {
         // given
+        String resolveCardJsonResponse = """
+                {
+                  "status": "success",
+                  "message": "BIN resolved successfully",
+                  "data": {
+                    "card_type": "MASTERCARD",
+                    "issuer": "GTBank"
+                  }
+                }
+                """;
+
         stubFor(get(urlEqualTo("/v3/card-bins/" + bin))
                 .withHeader("Authorization", equalTo("Bearer "+ secretKey))
                 .willReturn(aResponse()
@@ -102,12 +116,12 @@ class FlutterwaveClientTest {
                         .withBody(resolveCardJsonResponse)));
 
         // when
-        Map<String, Object> response = flutterwaveClient.resolveCard(bin);
+        FlutterwaveResponse response = flutterwaveClient.resolveCard(bin);
 
         // then
-        assertThat(response.get("status")).isEqualTo("success");
+        assertThat(response.status()).isEqualTo("success");
 
-        Map<String, Object> data = (Map<String, Object>) response.get("data");
+        Map<String, Object> data = response.data();
         assertThat(data.get("card_type")).isEqualTo("MASTERCARD");
         assertThat(data.get("issuer")).isEqualTo("GTBank");
     }
@@ -122,17 +136,15 @@ class FlutterwaveClientTest {
                 .willReturn(aResponse()
                         .withStatus(HttpStatus.OK.value())
                         .withHeader("Content-Type", "application/json")
-                        .withBody(chargeCardJsonResponse)));
+                        .withBody(pinChargeCardJsonResponse)));
 
         // when
-        Map<String, Object> response = flutterwaveClient.chargeCard(encryptedChargeRequest);
+        FlutterwaveResponse response = flutterwaveClient.chargeCard(encryptedChargeRequest);
 
         // then
-        assertThat(response.get("status")).isEqualTo("success");
-
-        Map<String, Object> data = (Map<String, Object>) response.get("data");
-        assertThat(data.get("tx_ref")).isEqualTo("LiveCardTest");
-        assertThat(data.get("status")).isEqualTo("pending");
+        assertThat(response.status()).isEqualTo("success");
+        Map<String, Object> auth = (Map<String, Object>) response.meta().get("authorization");
+        assertThat(auth.get("mode")).isEqualTo("pin");
 
         verify(postRequestedFor(urlEqualTo("/v3/charges?type=card"))
                 .withHeader("Authorization", matching("Bearer "+ secretKey))
@@ -203,12 +215,12 @@ class FlutterwaveClientTest {
                         .withBody(validateChargeJsonResponse)));
 
         // when
-        Map<String, Object> response = flutterwaveClient.validateCharge(request);
+        FlutterwaveResponse response = flutterwaveClient.validateCharge(request);
 
         // then
         assertThat(response).isNotNull();
-        assertThat(response.get("status")).isEqualTo("success");
-        assertThat(response.get("message")).isEqualTo("Charge validated");
+        assertThat(response.status()).isEqualTo("success");
+        assertThat(response.message()).isEqualTo("Charge validated");
 
         verify(postRequestedFor(urlEqualTo("/v3/validate-charge"))
                 .withHeader("Authorization", matching("Bearer "+ secretKey))
@@ -273,12 +285,12 @@ class FlutterwaveClientTest {
                         .withBody(verifyChargeJsonResponse)));
 
         // when
-        Map<String, Object> response = flutterwaveClient.verifyCharge(transactionId);
+        FlutterwaveResponse response = flutterwaveClient.verifyCharge(transactionId);
 
         // then
         assertThat(response).isNotNull();
-        assertThat(response.get("status")).isEqualTo("success");
-        assertThat(response.get("message")).isEqualTo("Transaction fetched successfully");
+        assertThat(response.status()).isEqualTo("success");
+        assertThat(response.message()).isEqualTo("Transaction fetched successfully");
 
         verify(getRequestedFor(urlEqualTo("/v3/transactions/" + transactionId + "/verify"))
                 .withHeader("Authorization", matching("Bearer "+ secretKey)));

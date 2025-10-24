@@ -6,11 +6,10 @@ import com.deodev.transactionService.enums.*;
 import com.deodev.transactionService.exception.ExternalServiceException;
 import com.deodev.transactionService.exception.PSPException;
 import com.deodev.transactionService.pspService.flutterwave.client.FlutterwaveClient;
+import com.deodev.transactionService.pspService.flutterwave.dto.FlutterwaveResponse;
 import com.deodev.transactionService.pspService.flutterwave.dto.request.*;
-import com.deodev.transactionService.pspService.flutterwave.dto.response.CardTypePayload;
-import com.deodev.transactionService.pspService.flutterwave.dto.response.ChargeCardResponse;
-import com.deodev.transactionService.pspService.flutterwave.dto.response.ValidateChargeCardResponse;
-import com.deodev.transactionService.pspService.flutterwave.dto.response.VerifyChargeCardResponse;
+import com.deodev.transactionService.pspService.flutterwave.dto.response.*;
+import com.deodev.transactionService.pspService.flutterwave.util.FlutterwaveCardServiceHelper;
 import com.deodev.transactionService.pspService.walletService.service.WalletService;
 import com.deodev.transactionService.rabbitmq.events.AccountFundedEvent;
 import com.deodev.transactionService.rabbitmq.outbox.service.OutboxService;
@@ -40,16 +39,21 @@ public class FlutterwaveCardService {
     private final TransactionService transactionService;
     private final WalletService walletService;
     private final OutboxService outboxService;
+    private final FlutterwaveCardServiceHelper helper;
+
+    // Resolve Card BIN
 
     public ApiResponse<?> getCardType(String bin) {
-        Map<String, Object> response = flutterwaveClient.resolveCard(bin);
-        handleErrorStatus(response, "Flutterwave failed to resolve card type for BIN " + bin);
+        FlutterwaveResponse response = flutterwaveClient.resolveCard(bin);
+        helper.handleErrorStatus(response);
 
-        Map<String, Object> data = (Map<String, Object>) response.get("data");
+        Map<String, Object> data = response.data();
         String cardType = (data != null) ? (String) data.getOrDefault("card_type", "UNKNOWN") : "UNKNOWN";
 
         return ApiResponse.success(HttpStatus.OK.value(), new CardTypePayload(cardType));
     }
+
+    // Charge Card
 
     public ApiResponse<?> initiateChargeCard(InitiateChargeCardRequest request,
                                              String userId, String idempotencyKey) {
@@ -97,6 +101,38 @@ public class FlutterwaveCardService {
         }
     }
 
+    ApiResponse<?> processChargeCardTransaction(String client, CardFundingTransaction cardFundingTransaction, Transaction transaction) {
+        FilteredChargeCardResponse response = chargeCard(client);
+
+        CardFundingTransaction savedCardFundingTransaction = transactionService.getCardFundingTransaction(cardFundingTransaction.getId());
+
+        savedCardFundingTransaction.setGatewayTransactionId(response.id());
+        savedCardFundingTransaction.setGatewayReference(response.flw_ref());
+        savedCardFundingTransaction.setAuthorizationCode(response.mode());
+        transactionService.saveCardFundingTransaction(savedCardFundingTransaction);
+        Map<String, Object> auth = response.authorization();
+
+        return ApiResponse.success(HttpStatus.OK.value(), ChargeCardResponse.builder()
+                .txn_ref(cardFundingTransaction.getId().toString())
+                .id(response.id())
+                .mode(response.mode())
+                .flw_ref(response.flw_ref())
+                .redirect(auth != null ? (String) auth.get("redirect") : null)
+                .message(response.processor_response())
+                .build());
+    }
+
+    FilteredChargeCardResponse chargeCard(String client) {
+        EncryptedChargeRequest chargeRequest = new EncryptedChargeRequest(client);
+
+        FlutterwaveResponse response = flutterwaveClient.chargeCard(chargeRequest);
+        helper.handleErrorStatus(response);
+
+        return helper.filterChargeCardResponse(response);
+    }
+
+    // Validate OTP
+
     public ApiResponse<?> validateChargeCard(ValidateChargeCardRequest request) {
         CardFundingTransaction cardFundingTransaction = transactionService.getCardFundingTransaction(
                 UUID.fromString(request.txn_ref()));
@@ -106,7 +142,7 @@ public class FlutterwaveCardService {
         OtpValidateRequest otpValidateRequest = OtpValidateRequest.builder()
                 .otp(request.otp()).flw_ref(request.flw_ref()).build();
 
-        Map<String, Object> response = new HashMap<>();
+        FilteredValidateOtpResponse response;
         try {
             response = validateOtp(otpValidateRequest);
         } catch (ExternalServiceException ex) {
@@ -121,11 +157,20 @@ public class FlutterwaveCardService {
         }
 
         return ApiResponse.success(HttpStatus.OK.value(), ValidateChargeCardResponse.builder()
-                .status((String) response.get("status"))
-                .message((String) response.get("message"))
-                .id(Long.valueOf((Integer) response.get("id")))
+                .status(response.status())
+                .message(response.status())
+                .id((long) response.id())
                 .build());
     }
+
+    FilteredValidateOtpResponse validateOtp(OtpValidateRequest request) {
+        FlutterwaveResponse response = flutterwaveClient.validateCharge(request);
+        helper.handleErrorStatus(response);
+
+        return helper.filterValidateOtpResponse(response);
+    }
+
+    // Verify Charge
 
     public ApiResponse<?> verifyCardTransaction(VerifyChargeCardRequest request) throws Exception {
         CardFundingTransaction cardFundingTransaction = transactionService.getCardFundingTransaction(
@@ -133,7 +178,7 @@ public class FlutterwaveCardService {
 
         Transaction transaction = transactionService.getTransaction(cardFundingTransaction.getTransactionId());
 
-        Map<String, Object> response = new HashMap<>();
+        FilteredVerifyChargeCardResponse response;
         try {
             response = verifyChargeCard(request.id());
         } catch (ExternalServiceException ex) {
@@ -148,28 +193,28 @@ public class FlutterwaveCardService {
         return verifyResponse(response, cardFundingTransaction, transaction);
     }
 
-    ApiResponse<?> verifyResponse(Map<String, Object> response,
+    ApiResponse<?> verifyResponse(FilteredVerifyChargeCardResponse response,
                                   CardFundingTransaction cardFundingTransaction, Transaction transaction) throws Exception {
-        return switch ((String) response.get("data_status")) {
+        return switch (response.data_status()) {
             case "successful" -> {
                 setSuccessfulCardFunding(cardFundingTransaction, transaction);
                 yield ApiResponse.success(HttpStatus.OK.value(), VerifyChargeCardResponse.builder()
-                        .status((String) response.get("data_status"))
-                        .message((String) response.get("processor_response"))
-                        .id(Long.valueOf((Integer) response.get("id")))
+                        .status(response.data_status())
+                        .message(response.processor_response())
+                        .id((long) response.id())
                         .txn_ref(cardFundingTransaction.getId().toString())
-                        .flw_ref((String) response.get("flw_ref"))
+                        .flw_ref(response.flw_ref())
                         .transactionId(transaction.getId().toString())
                         .amount(transaction.getAmount())
                         .currency(transaction.getCurrency())
                         .build());
             }
             case "pending" -> ApiResponse.success(HttpStatus.OK.value(), VerifyChargeCardResponse.builder()
-                    .status((String) response.get("data_status"))
-                    .message((String) response.get("processor_response"))
-                    .id(Long.valueOf((Integer) response.get("id")))
+                    .status(response.data_status())
+                    .message(response.processor_response())
+                    .id((long) response.id())
                     .txn_ref(cardFundingTransaction.getId().toString())
-                    .flw_ref((String) response.get("flw_ref"))
+                    .flw_ref(response.flw_ref())
                     .transactionId(transaction.getId().toString())
                     .amount(transaction.getAmount())
                     .currency(transaction.getCurrency())
@@ -177,11 +222,11 @@ public class FlutterwaveCardService {
             default -> {
                 transactionService.setFailedCardFundingTransaction(cardFundingTransaction, transaction, ErrorCode.EXTERNAL_PSP_ERROR);
                 yield ApiResponse.success(HttpStatus.OK.value(), VerifyChargeCardResponse.builder()
-                        .status((String) response.get("data_status"))
-                        .message((String) response.get("processor_response"))
-                        .id(Long.valueOf((Integer) response.get("id")))
+                        .status(response.data_status())
+                        .message(response.processor_response())
+                        .id((long) response.id())
                         .txn_ref(cardFundingTransaction.getId().toString())
-                        .flw_ref((String) response.get("flw_ref"))
+                        .flw_ref(response.flw_ref())
                         .transactionId(transaction.getId().toString())
                         .amount(transaction.getAmount())
                         .currency(transaction.getCurrency())
@@ -190,130 +235,15 @@ public class FlutterwaveCardService {
         };
     }
 
-    @Transactional
-    void setSuccessfulCardFunding(CardFundingTransaction cardFundingTransaction, Transaction transaction) throws Exception {
-        transactionService.setSuccessfulCardFundingTransaction(cardFundingTransaction, transaction);
+    FilteredVerifyChargeCardResponse verifyChargeCard(Long id) {
+        FlutterwaveResponse response = flutterwaveClient.verifyCharge(id);
+        helper.handleErrorStatus(response);
 
-        String eventId = UUID.randomUUID().toString();
-
-        outboxService.createScheduledEvent(
-                eventId,
-                ACCOUNT_FUNDED,
-                EventType.ACCOUNT_FUNDED,
-                AccountFundedEvent.builder()
-                        .eventId(eventId)
-                        .accountNumber(transaction.getAccountNumber())
-                        .amount(transaction.getAmount())
-                        .build());
+        return helper.filterVerifyChargeCard(response);
     }
 
-    Map<String, Object> chargeCard(String client) {
-        EncryptedChargeRequest chargeRequest = new EncryptedChargeRequest(client);
 
-        Map<String, Object> response = flutterwaveClient.chargeCard(chargeRequest);
-        handleErrorStatus(response, "Flutterwave failed to charge card");
 
-        return filterChargeCardResponse(response);
-    }
-
-    Map<String, Object> validateOtp(OtpValidateRequest request) {
-        Map<String, Object> response = flutterwaveClient.validateCharge(request);
-        handleErrorStatus(response, "Flutterwave failed to validate charge with otp");
-
-        return filterValidateOtpResponse(response);
-    }
-
-    Map<String, Object> verifyChargeCard(Long id) {
-        Map<String, Object> response = flutterwaveClient.verifyCharge(id);
-        handleErrorStatus(response, "Flutterwave failed to verify charge");
-
-        return filterVerifyChargeCard(response);
-    }
-
-    ApiResponse<?> processChargeCardTransaction(String client, CardFundingTransaction cardFundingTransaction, Transaction transaction) {
-        Map<String, Object> response = new HashMap<>();
-
-        response = chargeCard(client);
-
-        CardFundingTransaction savedCardFundingTransaction = transactionService.getCardFundingTransaction(cardFundingTransaction.getId());
-
-        Object id = response.get("id");
-        Long longId = (id instanceof Number) ? ((Number) id).longValue() : null;
-
-        savedCardFundingTransaction.setGatewayTransactionId(longId);
-        savedCardFundingTransaction.setGatewayReference((String) response.get("flw_ref"));
-        savedCardFundingTransaction.setAuthorizationCode((String) response.get("mode"));
-        transactionService.saveCardFundingTransaction(savedCardFundingTransaction);
-        Map<String, Object> auth = (Map<String, Object>) response.get("authorization");
-
-        return ApiResponse.success(HttpStatus.OK.value(), ChargeCardResponse.builder()
-                .txn_ref(cardFundingTransaction.getId().toString())
-                .id(longId)
-                .mode((String) response.get("mode"))
-                .flw_ref((String) response.get("flw_ref"))
-                .redirect(auth != null ? (String) auth.get("redirect") : null)
-                .message((String) response.get("processor_response"))
-                .build());
-    }
-
-    void handleErrorStatus(Map<String, Object> response, String message) {
-        if (!"success".equalsIgnoreCase((String) response.get("status"))) {
-            log.warn("{}Response: {}", message, response);
-            throw new PSPException(response.get("message") != null ? (String) response.get("message") : message);
-        }
-    }
-
-    Map<String, Object> filterChargeCardResponse(Map<String, Object> response) {
-        Map<String, Object> filtered = new HashMap<>();
-
-        Map<String, Object> data = (Map<String, Object>) response.getOrDefault("data", Map.of());
-        Map<String, Object> meta = (Map<String, Object>) response.getOrDefault("meta", Map.of());
-        Map<String, Object> auth = meta != null && meta.get("authorization") instanceof Map
-                ? (Map<String, Object>) meta.get("authorization")
-                : Map.of();
-
-        filtered.put("id", data != null ? data.get("id") : null);
-        filtered.put("txn_ref", data != null ? data.get("txn_ref") : null);
-        filtered.put("flw_ref", data != null ? data.get("flw_ref") : null);
-        filtered.put("processor_response", data != null ? data.get("processor_response") : null);
-        filtered.put("status", data != null ? data.get("status") : response.get("status"));
-        filtered.put("mode", auth.get("mode") != null ? auth.get("mode") : "none");
-        filtered.put("authorization", auth);
-
-        return filtered;
-    }
-
-    Map<String, Object> filterValidateOtpResponse(Map<String, Object> response) {
-        Map<String, Object> filtered = new HashMap<>();
-
-        String status = (String) response.get("status");
-        String message = (String) response.get("message");
-        Map<String, Object> data = (Map<String, Object>) response.getOrDefault("data", Map.of());
-
-        filtered.put("status", status);
-        filtered.put("message", message);
-        filtered.put("id", data != null ? data.get("id") : null);
-
-        return filtered;
-    }
-
-    Map<String, Object> filterVerifyChargeCard(Map<String, Object> response) {
-        Map<String, Object> filtered = new HashMap<>();
-
-        String status = (String) response.get("status");
-        String message = (String) response.get("message");
-        Map<String, Object> data = (Map<String, Object>) response.getOrDefault("data", Map.of());
-
-        filtered.put("status", status);
-        filtered.put("message", message);
-        filtered.put("id", data != null ? data.get("id") : null);
-        filtered.put("txn_ref", data != null ? data.get("txn_ref") : null);
-        filtered.put("flw_ref", data != null ? data.get("flw_ref") : null);
-        filtered.put("processor_response", data != null ? data.get("processor_response") : null);
-        filtered.put("data_status", data != null ? data.get("status") : null);
-
-        return filtered;
-    }
 
     @Transactional
     Transaction createNewTransaction(InitiateChargeCardRequest request,
@@ -345,5 +275,22 @@ public class FlutterwaveCardService {
                 .build();
 
         return transactionService.saveCardFundingTransaction(cardFundingTransaction);
+    }
+
+    @Transactional
+    void setSuccessfulCardFunding(CardFundingTransaction cardFundingTransaction, Transaction transaction) throws Exception {
+        transactionService.setSuccessfulCardFundingTransaction(cardFundingTransaction, transaction);
+
+        String eventId = UUID.randomUUID().toString();
+
+        outboxService.createScheduledEvent(
+                eventId,
+                ACCOUNT_FUNDED,
+                EventType.ACCOUNT_FUNDED,
+                AccountFundedEvent.builder()
+                        .eventId(eventId)
+                        .accountNumber(transaction.getAccountNumber())
+                        .amount(transaction.getAmount())
+                        .build());
     }
 }
