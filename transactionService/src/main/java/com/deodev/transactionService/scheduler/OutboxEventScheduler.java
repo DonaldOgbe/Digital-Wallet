@@ -23,7 +23,7 @@ public class OutboxEventScheduler {
     private final TransactionEventsPublisher transactionEventsPublisher;
     private final ObjectMapper mapper;
 
-    @Scheduled(fixedRate = 60000)
+    @Scheduled(fixedRate = 180000)
     public void scheduleAccountFunding() {
         List<OutboxEvent> outboxEventList = outboxService.findBySentFalseAndEventType(EventType.ACCOUNT_FUNDED);
 

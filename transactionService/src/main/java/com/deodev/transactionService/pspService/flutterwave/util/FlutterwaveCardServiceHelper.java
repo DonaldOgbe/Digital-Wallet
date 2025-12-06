@@ -1,5 +1,6 @@
 package com.deodev.transactionService.pspService.flutterwave.util;
 
+import com.deodev.transactionService.exception.ExternalServiceException;
 import com.deodev.transactionService.exception.PSPException;
 import com.deodev.transactionService.pspService.flutterwave.dto.FlutterwaveResponse;
 import com.deodev.transactionService.pspService.flutterwave.dto.response.FilteredChargeCardResponse;
@@ -19,7 +20,7 @@ public class FlutterwaveCardServiceHelper {
     public void handleErrorStatus(FlutterwaveResponse response) {
         if (!"success".equalsIgnoreCase(response.status())) {
             log.warn("{} Response: {}", response.message(), response);
-            throw new PSPException(response.message());
+            throw new ExternalServiceException(response.message());
         }
     }
 

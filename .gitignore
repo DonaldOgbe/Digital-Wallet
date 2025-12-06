@@ -3,11 +3,6 @@
 !**/.mvn/wrapper/maven-wrapper.jar
 **/dependency-reduced-pom.xml
 
-# === Gradle (if you ever switch) ===
-**/build/
-**/.gradle/
-**/gradle-app.setting
-
 # === Java ===
 *.class
 *.jar

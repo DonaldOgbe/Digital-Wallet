@@ -4,7 +4,6 @@ import com.deodev.transactionService.dto.ApiResponse;
 import com.deodev.transactionService.dto.ErrorResponse;
 import com.deodev.transactionService.enums.*;
 import com.deodev.transactionService.exception.ExternalServiceException;
-import com.deodev.transactionService.exception.PSPException;
 import com.deodev.transactionService.pspService.flutterwave.client.FlutterwaveClient;
 import com.deodev.transactionService.pspService.flutterwave.dto.FlutterwaveResponse;
 import com.deodev.transactionService.pspService.flutterwave.dto.request.*;
@@ -76,7 +75,7 @@ public class FlutterwaveCardService {
             transactionService.setFailedCardFundingTransaction(cardFundingTransaction, transaction, ErrorCode.EXTERNAL_PSP_ERROR);
             log.error("Transaction {} failed on charge card due to exception", transaction.getId(), ex);
             return ApiResponse.error(HttpStatus.INTERNAL_SERVER_ERROR.value(), ErrorCode.SYSTEM_ERROR,
-                    ErrorResponse.builder().message("Internal processing error"));
+                    ErrorResponse.builder().message("Internal processing error").build());
         }
     }
 
